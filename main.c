@@ -4,12 +4,12 @@
 #include <math.h>
 
 // Binde hier deinen Header ein
-#include "klausur_prep.h"
+#include "exam_prep.h"
 
 // ============================================================================
 // TEST SWITCHES - Setze die Werte auf 1, um die jeweilige Aufgabe zu testen
 // ============================================================================
-#define TEST_TASK_1 1
+#define TEST_TASK_1 0
 #define TEST_TASK_2 0
 #define TEST_TASK_3 0
 #define TEST_TASK_4 0
