@@ -1,0 +1,618 @@
+\documentclass[10pt, a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{parskip}
+\usepackage{amsmath}
+\usepackage{hyperref}
+
+\geometry{a4paper, top=2cm, bottom=2cm, left=2cm, right=2cm}
+
+\definecolor{backcolour}{rgb}{0.96, 0.96, 0.96}
+
+\lstset{
+    language=C,
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{backcolour},
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny,
+    numbersep=6pt,
+    breaklines=true,
+    tabsize=4,
+    showstringspaces=false,
+    morekeywords={uint32_t, uint8_t, size_t, SList, SNode, Warehouse, Product, Item, Node}
+}
+
+\setlength{\parskip}{4pt}
+
+\begin{document}
+
+\begin{center}
+    {\large\bfseries Exam Prep -- C Funktionen}
+\end{center}
+
+\tableofcontents
+\newpage
+
+\section{Bitfield (\texttt{bitfield.c})}
+
+\subsection{set\_bit}
+\begin{lstlisting}
+uint32_t set_bit(uint32_t val, int pos)
+{
+    return val | (1U << pos);
+}    
+\end{lstlisting}
+
+\subsection{clear\_bit}
+\begin{lstlisting}
+uint32_t clear_bit(uint32_t val, int pos)
+{ 
+    return val & ~(1U << pos);
+}  
+\end{lstlisting}
+
+\subsection{toggle\_bit}
+\begin{lstlisting}
+uint32_t toggle_bit(uint32_t val, int pos)
+{
+    return val ^ (1U << pos);
+}  
+\end{lstlisting}
+
+\subsection{get\_bit}
+\begin{lstlisting}
+int get_bit(uint32_t val, int pos)    
+{
+    return (val >> pos) & 1U; 
+}  
+\end{lstlisting}
+
+OR setzt, AND+NOT loescht, XOR kippt, Shift+Mask liest ein Bit.
+
+\subsection{count\_ones}
+\begin{lstlisting}
+int count_ones(uint32_t val)
+{
+    int count = 0;
+    while (val > 0) { count += val & 1; val >>= 1; }
+    return count;
+}
+\end{lstlisting}
+Zaehlt gesetzte Bits (Hamming-Gewicht). Prueft LSB, schiebt rechts.
+
+\subsection{pack\_rgb / unpack\_rgb}
+\begin{lstlisting}
+uint32_t pack_rgb(uint8_t r, uint8_t g, uint8_t b)
+{
+    return ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+}
+
+void unpack_rgb(uint32_t packed, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+    if (r) *r = (packed >> 16) & 0xFF;
+    if (g) *g = (packed >> 8)  & 0xFF;
+    if (b) *b =  packed        & 0xFF;
+}
+\end{lstlisting}
+Format: 0x00RRGGBB. R in Bits 23-16, G in 15-8, B in 7-0.
+
+\section{Warehouse / Inventory (\texttt{inventory.c})}
+
+\subsection{warehouse\_create / warehouse\_destroy}
+\begin{lstlisting}
+Warehouse *warehouse_create(void)
+{
+    Warehouse *w = malloc(sizeof(Warehouse));
+    if (!w) return NULL;
+    w->products = NULL; w->count = 0; w->capacity = 4; w->next_id = 1;
+    return w;
+}
+
+void warehouse_destroy(Warehouse *w)
+{
+    if (!w) return;
+    free(w->products);
+    free(w);
+}
+\end{lstlisting}
+Create initialisiert alle Felder. Destroy gibt erst Produkt-Array, dann Struktur frei.
+
+\subsection{warehouse\_add\_product}
+\begin{lstlisting}
+int warehouse_add_product(Warehouse *w, const char *name,
+                          double price, int quantity)
+{
+    if (!w || !name) return -1;
+    if (w->count >= w->capacity) {
+        int new_cap = w->capacity == 0 ? 4 : w->capacity * 2;
+        Product *tmp = realloc(w->products, new_cap * sizeof(Product));
+        if (!tmp) return -1;
+        w->products = tmp; w->capacity = new_cap;
+    }
+    w->products[w->count].id = w->next_id++;
+    w->products[w->count].price = price;
+    w->products[w->count].quantity = quantity;
+    strncpy(w->products[w->count].name, name, 63);
+    w->products[w->count].name[63] = '\0';
+    w->count++;
+    return 0;
+}
+\end{lstlisting}
+Bei vollem Array: realloc auf doppelte Kapazitaet. strncpy + manueller Null-Terminator gegen Buffer-Overflow.
+
+\subsection{warehouse\_remove\_by\_id}
+\begin{lstlisting}
+int warehouse_remove_by_id(Warehouse *w, int id)
+{
+    if (!w) return -1;
+    for (int i = 0; i < w->count; i++) {
+        if (w->products[i].id == id) {
+            for (int j = i; j < w->count - 1; j++)
+                w->products[j] = w->products[j + 1];
+            w->count--;
+            return 0;
+        }
+    }
+    return -1;
+}
+\end{lstlisting}
+Lineare Suche, dann Linksverschiebung aller nachfolgenden Elemente.
+
+\subsection{warehouse\_find\_by\_name / warehouse\_total\_value}
+\begin{lstlisting}
+Product *warehouse_find_by_name(Warehouse *w, const char *query)
+{
+    if (!w || !query) return NULL;
+    for (int i = 0; i < w->count; i++)
+        if (strcmp(w->products[i].name, query) == 0)
+            return &w->products[i];
+    return NULL;
+}
+
+double warehouse_total_value(const Warehouse *w)
+{
+    if (!w) return 0.0;
+    double total = 0;
+    for (int i = 0; i < w->count; i++)
+        total += w->products[i].price * w->products[i].quantity;
+    return total;
+}
+\end{lstlisting}
+Find gibt Zeiger ins Array zurueck (kein Kopieren). Total Value: Summe von Preis x Menge.
+
+\subsection{warehouse\_sort\_by\_price}
+\begin{lstlisting}
+void warehouse_sort_by_price(Warehouse *w)
+{
+    if (!w || w->count <= 1) return;
+    for (int i = 0; i < w->count - 1; i++) {
+        for (int j = 0; j < w->count - i - 1; j++) {
+            if (w->products[j].price > w->products[j+1].price ||
+               (w->products[j].price == w->products[j+1].price &&
+                w->products[j].id    >  w->products[j+1].id)) {
+                Product tmp = w->products[j];
+                w->products[j] = w->products[j+1];
+                w->products[j+1] = tmp;
+            }
+        }
+    }
+}
+\end{lstlisting}
+Bubble Sort nach Preis. Bei Gleichstand nach ID sortiert (deterministisch).
+
+\section{Verkettete Liste (\texttt{linkedlist.c})}
+
+\subsection{slist\_create / slist\_destroy}
+\begin{lstlisting}
+SList *slist_create(void)
+{
+    SList *l = malloc(sizeof(SList));
+    if (!l) return NULL;
+    l->head = NULL; l->tail = NULL; l->size = 0;
+    return l;
+}
+
+void slist_destroy(SList *list)
+{
+    if (!list) return;
+    SNode *cur = list->head;
+    while (cur) { SNode *nxt = cur->next; free(cur); cur = nxt; }
+    free(list);
+}
+\end{lstlisting}
+Tail-Pointer fuer O(1) push\_back. Destroy: next vor free sichern!
+
+\subsection{slist\_push\_front / slist\_push\_back}
+\begin{lstlisting}
+int slist_push_front(SList *list, int value)
+{
+    if (!list) return -1;
+    SNode *n = malloc(sizeof(SNode));
+    if (!n) return -1;
+    n->value = value; n->next = list->head;
+    list->head = n;
+    if (list->size == 0) list->tail = n;
+    list->size++;
+    return 0;
+}
+
+int slist_push_back(SList *list, int value)
+{
+    if (!list) return -1;
+    SNode *n = malloc(sizeof(SNode));
+    if (!n) return -1;
+    n->value = value; n->next = NULL;
+    if (list->size == 0) { list->head = n; list->tail = n; }
+    else                 { list->tail->next = n; list->tail = n; }
+    list->size++;
+    return 0;
+}
+\end{lstlisting}
+Beide O(1). push\_front: neuer Knoten zeigt auf alten Head. push\_back: Tail-Pointer ermoeglicht direktes Anhaengen.
+
+\subsection{slist\_pop\_front}
+\begin{lstlisting}
+int slist_pop_front(SList *list, int *err)
+{
+    if (!list || list->size == 0) { if (err) *err = -1; return 0; }
+    SNode *rem = list->head;
+    int val = rem->value;
+    list->head = rem->next;
+    if (--list->size == 0) list->tail = NULL;
+    free(rem);
+    if (err) *err = 0;
+    return val;
+}
+\end{lstlisting}
+Output-Parameter err, da C keinen zweiten Rueckgabewert hat. Leere Liste: 0 + err=-1.
+
+\subsection{slist\_remove\_at}
+\begin{lstlisting}
+int slist_remove_at(SList *list, int index)
+{
+    if (!list || index < 0 || index >= list->size) return -1;
+    if (index == 0) {
+        SNode *n = list->head;
+        list->head = n->next;
+        if (--list->size == 0) list->tail = NULL;
+        free(n); return 0;
+    }
+    SNode *prev = list->head;
+    for (int i = 0; i < index - 1; i++) prev = prev->next;
+    SNode *n = prev->next;
+    prev->next = n->next;
+    if (n == list->tail) list->tail = prev;
+    list->size--;
+    free(n);
+    return 0;
+}
+\end{lstlisting}
+Index 0 ist Sonderfall (kein Vorgaenger). Tail aktualisieren wenn letztes Element geloescht wird.
+
+\subsection{slist\_insertion\_sort}
+\begin{lstlisting}
+void slist_insertion_sort(SList *list)
+{
+    if (!list || list->size <= 1) return;
+    SNode *sorted_head = NULL, *sorted_tail = NULL;
+    SNode *cur = list->head;
+    while (cur) {
+        SNode *nxt = cur->next;
+        if (!sorted_head || cur->value <= sorted_head->value) {
+            cur->next = sorted_head; sorted_head = cur;
+            if (!sorted_tail) sorted_tail = cur;
+        } else {
+            SNode *s = sorted_head;
+            while (s->next && s->next->value < cur->value) s = s->next;
+            cur->next = s->next; s->next = cur;
+            if (!cur->next) sorted_tail = cur;
+        }
+        cur = nxt;
+    }
+    list->head = sorted_head; list->tail = sorted_tail;
+}
+\end{lstlisting}
+Kein neuer Speicher: Knoten direkt in sortierte Teilliste umgehaengt. O(n\^{}2).
+
+\subsection{slist\_reverse / slist\_to\_array}
+\begin{lstlisting}
+void slist_reverse(SList *list)
+{
+    if (!list || list->size <= 1) return;
+    SNode *prev = NULL, *cur = list->head, *nxt;
+    list->tail = list->head;
+    while (cur) { nxt = cur->next; cur->next = prev; prev = cur; cur = nxt; }
+    list->head = prev;
+}
+
+int *slist_to_array(const SList *list)
+{
+    if (!list || list->size == 0) return NULL;
+    int *arr = malloc(list->size * sizeof(int));
+    if (!arr) return NULL;
+    SNode *cur = list->head;
+    for (int i = 0; i < list->size; i++, cur = cur->next) arr[i] = cur->value;
+    return arr;
+}
+\end{lstlisting}
+Reverse: drei Zeiger, O(n), O(1) Speicher. to\_array: Aufrufer muss freigeben!
+
+\section{Rekursion (\texttt{recursion.c})}
+
+\subsection{fast\_power}
+\begin{lstlisting}
+long long fast_power(long long x, int n)
+{
+    if (n == 0) return 1;
+    long long half = fast_power(x, n / 2);
+    return (n % 2 == 0) ? half * half : x * half * half;
+}
+\end{lstlisting}
+Exponentiation by Squaring. x\^{}n = (x\^{}(n/2))\^{}2 (gerade) bzw. x*(x\^{}(n/2))\^{}2 (ungerade). O(log n).
+
+\subsection{gcd}
+\begin{lstlisting}
+int gcd(int a, int b)
+{
+    if (b == 0) return a;
+    return gcd(b, a % b);
+}
+\end{lstlisting}
+Euklidischer Algorithmus: ggT(a,b) = ggT(b, a mod b), Abbruch bei b=0.
+
+\subsection{hanoi}
+\begin{lstlisting}
+int hanoi(int n, char from, char to, char aux)
+{
+    if (n == 0) return 0;
+    int moves = 0;
+    moves += hanoi(n-1, from, aux, to);
+    printf("Bewege Scheibe %d von %c nach %c\n", n, from, to);
+    moves++;
+    moves += hanoi(n-1, aux, to, from);
+    return moves;
+}
+\end{lstlisting}
+n-1 Scheiben nach aux, Scheibe n direkt, n-1 Scheiben nach to. Gesamt: 2\^{}n - 1 Zuege.
+
+\subsection{count\_paths / count\_paths\_memo}
+\begin{lstlisting}
+int count_paths(int rows, int cols)
+{
+    if (rows == 1 || cols == 1) return 1;
+    return count_paths(rows-1, cols) + count_paths(rows, cols-1);
+}
+
+int count_paths_memo(int rows, int cols, int memo[][20])
+{
+    if (rows == 1 || cols == 1) return 1;
+    if (memo && memo[rows-1][cols-1] != -1) return memo[rows-1][cols-1];
+    int r = count_paths_memo(rows-1, cols, memo)
+          + count_paths_memo(rows, cols-1, memo);
+    if (memo) memo[rows-1][cols-1] = r;
+    return r;
+}
+\end{lstlisting}
+Pfade in Gitter (nur rechts/runter). Memo mit -1 initialisieren. Reduziert von exponentiell auf O(rows*cols).
+
+\section{Encoding (\texttt{encode.c})}
+
+\subsection{caesar\_encode / caesar\_decode}
+\begin{lstlisting}
+char *caesar_encode(const char *text, int shift)
+{
+    if (!text) return NULL;
+    size_t len = strlen(text);
+    char *res = malloc(len + 1);
+    if (!res) return NULL;
+    shift = ((shift % 26) + 26) % 26;
+    for (size_t i = 0; i < len; i++) {
+        char c = text[i];
+        if      (c >= 'a' && c <= 'z') res[i] = 'a' + (c - 'a' + shift) % 26;
+        else if (c >= 'A' && c <= 'Z') res[i] = 'A' + (c - 'A' + shift) % 26;
+        else                           res[i] = c;
+    }
+    res[len] = '\0';
+    return res;
+}
+
+char *caesar_decode(const char *text, int shift)
+{
+    int s = ((shift % 26) + 26) % 26;
+    return caesar_encode(text, (26 - s) % 26);
+}
+\end{lstlisting}
+Shift um n Positionen, wrap-around. Decode ruft Encode mit Gegenshift auf. Aufrufer muss freigeben.
+
+\subsection{xor\_encode}
+\begin{lstlisting}
+char *xor_encode(const char *text, uint8_t key)
+{
+    if (!text) return NULL;
+    size_t len = strlen(text);
+    char *res = malloc(len + 1);
+    if (!res) return NULL;
+    for (size_t i = 0; i < len; i++) res[i] = text[i] ^ key;
+    res[len] = '\0';
+    return res;
+}
+\end{lstlisting}
+Symmetrisch: doppeltes XOR mit gleichem Key ergibt Original.
+
+\subsection{is\_rotation}
+\begin{lstlisting}
+int is_rotation(const char *a, const char *b)
+{
+    if (!a || !b) return 0;
+    size_t la = strlen(a), lb = strlen(b);
+    if (la != lb) return 0;
+    if (la == 0)  return 1;
+    char *concat = malloc(la * 2 + 1);
+    if (!concat) return 0;
+    strcpy(concat, a); strcat(concat, a);
+    int r = (strstr(concat, b) != NULL) ? 1 : 0;
+    free(concat);
+    return r;
+}
+\end{lstlisting}
+Trick: jede Rotation von a ist Teilstring in aa.
+
+\subsection{rle\_encode / rle\_decode}
+\begin{lstlisting}
+char *rle_encode(const char *text)   // "aaabbc" -> "3a2b1c"
+{
+    if (!text) return NULL;
+    size_t len = strlen(text);
+    char *res = malloc(len * 12 + 1);
+    if (!res) return NULL;
+    int count = 1; char cur = text[0]; size_t pos = 0;
+    for (size_t i = 1; i <= len; i++) {
+        if (i < len && text[i] == cur) { count++; }
+        else {
+            pos += sprintf(res + pos, "%d%c", count, cur);
+            if (i < len) { cur = text[i]; count = 1; }
+        }
+    }
+    char *s = realloc(res, pos + 1);
+    return s ? s : res;
+}
+
+char *rle_decode(const char *enc)    // "3a2b1c" -> "aaabbc"
+{
+    if (!enc || !enc[0]) { char *r = malloc(1); if(r) *r='\0'; return r; }
+    size_t total = 0, i = 0, len = strlen(enc);
+    while (i < len) {
+        int c = 0;
+        while (i < len && isdigit((unsigned char)enc[i]))
+            c = c * 10 + (enc[i++] - '0');
+        if (!c || i >= len) return NULL;
+        total += c; i++;
+    }
+    char *res = malloc(total + 1); if (!res) return NULL;
+    i = 0; size_t pos = 0;
+    while (i < len) {
+        int c = 0;
+        while (i < len && isdigit((unsigned char)enc[i]))
+            c = c * 10 + (enc[i++] - '0');
+        char ch = enc[i++];
+        while (c--) res[pos++] = ch;
+    }
+    res[total] = '\0';
+    return res;
+}
+\end{lstlisting}
+Encode: grosszuegige Allokation, dann realloc. Decode: zwei Paesse -- erst Laenge, dann aufbauen.
+
+\section{Exam Prep Funktionen (\texttt{exam\_prep.c})}
+
+\subsection{compress\_rle}
+\begin{lstlisting}
+void compress_rle(const char *src, char *dest)  // "aaabbc" -> "a3b2c1"
+{
+    if (src[0] == '\0') { dest[0] = '\0'; return; }
+    char cur = src[0]; int count = 1, pos = 0;
+    for (int i = 1; src[i] != '\0'; i++) {
+        if (cur == src[i]) count++;
+        else {
+            pos += sprintf(dest + pos, "%c%d", cur, count);
+            cur = src[i]; count = 1;
+        }
+    }
+    sprintf(dest + pos, "%c%d", cur, count);
+}
+\end{lstlisting}
+Wie rle\_encode aber kein Heap: schreibt direkt in Aufrufer-Buffer. Format: Zeichen dann Zahl. Kein Laengencheck!
+
+\subsection{find\_lowest\_stock / apply\_discount}
+\begin{lstlisting}
+Item *find_lowest_stock(Item *items, int length)
+{
+    Item *lowest = &items[0];
+    for (int i = 1; i < length; i++)
+        if (items[i].quantity < lowest->quantity) lowest = &items[i];
+    return lowest;
+}
+
+void apply_discount(Item *items, int length,
+                    const char *category, float pct)
+{
+    for (int i = 0; i < length; i++)
+        if (strcmp(items[i].category, category) == 0)
+            items[i].price *= (1.0f - pct / 100.0f);
+}
+\end{lstlisting}
+find\_lowest gibt Zeiger ins Array zurueck. apply\_discount modifiziert Preise in-place.
+
+\subsection{create\_matrix / transpose\_matrix / free\_matrix}
+\begin{lstlisting}
+int **create_matrix(int rows, int cols)
+{
+    int **m = malloc(sizeof(int*) * rows);
+    if (!m) return NULL;
+    for (int i = 0; i < rows; i++) {
+        m[i] = malloc(sizeof(int) * cols);
+        if (!m[i]) {
+            for (int j = 0; j < i; j++) free(m[j]);
+            free(m); return NULL;
+        }
+    }
+    return m;
+}
+
+int **transpose_matrix(int **m, int rows, int cols)
+{
+    int **t = create_matrix(cols, rows);
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            t[j][i] = m[i][j];
+    return t;
+}
+
+void free_matrix(int **m, int rows)
+{
+    for (int i = 0; i < rows; i++) free(m[i]);
+    free(m);
+}
+\end{lstlisting}
+Jede Zeile separat allokiert. Bei Fehler: Cleanup aller bisherigen Zeilen. Transpose: [i][j] -> [j][i]. free: erst Zeilen, dann Zeigerarray.
+
+\subsection{list\_append / list\_filter\_even / list\_free}
+\begin{lstlisting}
+void list_append(Node **head, int value)
+{
+    Node *n = malloc(sizeof(Node));
+    if (!n) return;
+    n->data = value; n->next = NULL;
+    if (!*head) { *head = n; return; }
+    Node *cur = *head;
+    while (cur->next) cur = cur->next;
+    cur->next = n;
+}
+
+void list_filter_even(Node **head)
+{
+    Node *cur = *head;
+    while (cur && cur->next) {
+        if (cur->next->data % 2 == 0) {
+            Node *del = cur->next;
+            cur->next = del->next;
+            free(del);
+        } else cur = cur->next;
+    }
+}
+
+void list_free(Node **head)
+{
+    Node *cur = *head;
+    while (cur) { Node *nxt = cur->next; free(cur); cur = nxt; }
+    *head = NULL;
+}
+\end{lstlisting}
+append: O(n), kein Tail-Pointer. filter\_even: loescht ueber Nachfolger (Head wird nicht geprueft!). list\_free setzt Pointer auf NULL.
+
+\end{document}
