@@ -11,7 +11,7 @@
 // ============================================================================
 // TEST SWITCHES -- Setze auf 1 um die jeweilige Aufgabe zu testen
 // ============================================================================
-#define TEST_TASK_1 0   /* Strings      */
+#define TEST_TASK_1 1   /* Strings      */
 #define TEST_TASK_2 0   /* Structs      */
 #define TEST_TASK_3 0   /* Stack        */
 #define TEST_TASK_4 0   /* Linked List  */
