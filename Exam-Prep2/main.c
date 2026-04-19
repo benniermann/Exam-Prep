@@ -13,8 +13,8 @@
 // ============================================================================
 #define TEST_TASK_1 0   /* Strings      */
 #define TEST_TASK_2 0   /* Structs      */
-#define TEST_TASK_3 1   /* Stack        */
-#define TEST_TASK_4 0   /* Linked List  */
+#define TEST_TASK_3 0   /* Stack        */
+#define TEST_TASK_4 1   /* Linked List  */
 
 // ----------------------------------------------------------------------------
 static void print_result(const char *name, int passed)
