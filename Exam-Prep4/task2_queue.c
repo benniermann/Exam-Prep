@@ -1,69 +1,137 @@
-#ifndef TASK2_QUEUE_H
-#define TASK2_QUEUE_H
+#include "task2_queue.h"
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <stdio.h>
 
-/*
- * Aufgabe 2: Dynamische FIFO-Queue
- *
- * Implementiere eine dynamisch wachsende Integer-Queue (First In, First Out)
- * in task2_queue.c.
- * Die Queue wird als Ring-Puffer (Circular Buffer) implementiert:
- * 'front' zeigt auf das erste Element, 'back' auf die Stelle hinter dem letzten.
- * Wenn die Queue voll ist (size == capacity), wird die Kapazitaet verdoppelt.
- *
- * Unterschied zum Stack: Das ERSTE eingefuegte Element wird auch als
- * ERSTES wieder entnommen (FIFO, nicht LIFO).
- */
+Queue *queue_create(void)
+{
+    Queue *new_queue = malloc(sizeof(Queue));
+    if (!new_queue)
+        return NULL;
 
-typedef struct {
-    int *data;       /* dynamisches Array                  */
-    int  front;      /* Index des ersten Elements           */
-    int  back;       /* Index hinter dem letzten Element    */
-    int  size;       /* aktuelle Anzahl Elemente            */
-    int  capacity;   /* aktuell allokierte Kapazitaet       */
-} Queue;
+    new_queue->data = malloc(4 * sizeof(int));
+    if (new_queue->data == NULL)
+    {
+        free(new_queue);
+        return NULL;
+    }
 
-/*
- * Erstellt eine leere Queue mit initialer Kapazitaet 4.
- * Gibt NULL bei Speicherfehler zurueck.
- */
-Queue *queue_create(void);
+    new_queue->back = 0;
+    new_queue->front = 0;
+    new_queue->size = 0;
+    new_queue->capacity = 4;
 
-/*
- * Gibt den gesamten Speicher der Queue frei.
- * NULL-sicher.
- */
-void queue_destroy(Queue *q);
+    return new_queue;
+}
 
-/*
- * Fuegt einen Wert am Ende der Queue ein.
- * Verdoppelt die Kapazitaet wenn size == capacity.
- * Gibt 0 bei Erfolg, -1 bei Fehler zurueck.
- */
-int queue_enqueue(Queue *q, int value);
+void queue_destroy(Queue *q)
+{
+    if (q == NULL)
+        return;
 
-/*
- * Entfernt den vordersten Wert und gibt ihn zurueck (FIFO).
- * Setzt *err auf -1 wenn die Queue leer ist, sonst auf 0.
- * Bei leerer Queue: Rueckgabewert ist 0.
- */
-int queue_dequeue(Queue *q, int *err);
+    if (q->data != NULL)
+    {
+        free(q->data);
+    }
 
-/*
- * Gibt den vordersten Wert zurueck OHNE ihn zu entfernen.
- * Setzt *err auf -1 wenn die Queue leer ist, sonst auf 0.
- */
-int queue_peek(const Queue *q, int *err);
+    free(q);
+}
 
-/*
- * Gibt 1 zurueck wenn die Queue leer ist, sonst 0.
- * NULL -> 1.
- */
-int queue_is_empty(const Queue *q);
+int queue_enqueue(Queue *q, int value)
+{
+    if (q == NULL)
+    {
+        return -1;
+    }
 
-/*
- * Gibt die aktuelle Anzahl der Elemente zurueck.
- * NULL -> 0.
- */
-int queue_size(const Queue *q);
+    if (q->size == q->capacity)
+    {
+        int new_capacity = (q->capacity == 0) ? 4 : q->capacity * 2;
+        int *new_data = malloc(new_capacity * sizeof(int));
 
-#endif /* TASK2_QUEUE_H */
+        if (new_data == NULL)
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < q->size; i++)
+        {
+            new_data[i] = q->data[(q->front + i) % q->capacity];
+        }
+
+        free(q->data);
+
+        q->data = new_data;
+        q->front = 0;
+        q->back = q->size;
+        q->capacity = new_capacity;
+    }
+
+    q->data[q->back] = value;
+    q->back = (q->back + 1) % q->capacity;
+    q->size++;
+
+    return 0;
+}
+
+int queue_dequeue(Queue *q, int *err)
+{
+    if (q == NULL || q->size == 0)
+    {
+        if (err != NULL)
+        {
+            *err = -1;
+        }
+        return 0;
+    }
+
+    int value = q->data[q->front];
+    q->front = (q->front + 1) % q->capacity;
+    q->size--;
+
+    if (err != NULL)
+    {
+        *err = 0;
+    }
+
+    return value;
+}
+
+int queue_peek(const Queue *q, int *err)
+{
+    if (q == NULL || q->size == 0)
+    {
+        if (err != NULL)
+        {
+            *err = -1;
+        }
+        return 0;
+    }
+
+    int value = q->data[q->front];
+
+    if (err != NULL)
+    {
+        *err = 0;
+    }
+
+    return value;
+}
+
+int queue_is_empty(const Queue *q)
+{
+    if (q == NULL)
+        return 1;
+
+    return q->size == 0;
+}
+
+int queue_size(const Queue *q)
+{
+    if (q == NULL)
+        return 0;
+
+    return q->size;
+}

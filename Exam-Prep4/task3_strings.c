@@ -1,87 +1,193 @@
-#ifndef TASK3_STRINGS_H
-#define TASK3_STRINGS_H
+#include "task3_strings.h"
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <stdio.h>
 
-/*
- * Aufgabe 3: Weitere String-Operationen
- *
- * Implementiere die folgenden Funktionen in task3_strings.c.
- * Alle Funktionen die neuen Speicher allokieren: Aufrufer ist verantwortlich
- * fuer free(). Bei Speicherfehler oder NULL-Eingabe: NULL zurueckgeben.
- */
+char *str_trim(const char *s)
+{
+    if (s == NULL)
+        return NULL;
 
-/*
- * Gibt eine neu allokierte Kopie von 's' zurueck, bei der fuehrende und
- * abschliessende Leerzeichen (' ', '\t', '\n', '\r') entfernt wurden.
- * Bei NULL-Eingabe oder Speicherfehler: NULL zurueckgeben.
- * Beispiele:
- *   "  hallo  " -> "hallo"
- *   "\t test\n" -> "test"
- *   "ok"        -> "ok"
- *   "   "       -> ""   (nur Leerzeichen -> leerer String)
- */
-char *str_trim(const char *s);
+    char *copy = malloc(strlen(s) + 1);
+    if (!copy)
+        return NULL;
 
-/*
- * Konvertiert den String in einen int und schreibt das Ergebnis nach *out.
- * Gibt 0 bei Erfolg zurueck, -1 bei Fehler.
- * Fehlerfall: s ist NULL, leer, enthaelt nicht-numerische Zeichen
- * (fuehrendes '-' fuer negative Zahlen ist erlaubt).
- * Leerzeichen am Anfang werden ignoriert (wie strtol).
- * Beispiele:
- *   "42"    -> *out=42,  gibt 0
- *   " -7"   -> *out=-7,  gibt 0
- *   "3abc"  -> gibt -1
- *   ""      -> gibt -1
- *   NULL    -> gibt -1
- */
-int str_to_int(const char *s, int *out);
+    strcpy(copy, s);
 
-/*
- * Gibt 1 zurueck wenn 's' mit dem Praefix 'prefix' beginnt, sonst 0.
- * Gross-/Kleinschreibung wird BEACHTET.
- * NULL fuer s oder prefix -> 0.
- * Beispiele:
- *   str_starts_with("hallo welt", "hallo") -> 1
- *   str_starts_with("hallo", "hallo welt") -> 0
- *   str_starts_with("Test", "test")        -> 0
- *   str_starts_with("", "")               -> 1
- */
-int str_starts_with(const char *s, const char *prefix);
+    int start = 0;
+    while (copy[start] == ' ' || copy[start] == '\t' || copy[start] == '\n' || copy[start] == '\r')
+    {
+        start++;
+    }
 
-/*
- * Zaehlt die Vokale (a, e, i, o, u) im String, Gross-/Kleinschreibung wird
- * ignoriert.
- * NULL -> 0.
- * Beispiele:
- *   "Hallo Welt"  -> 3  (a, o, e)
- *   "AEIOU"       -> 5
- *   "xyz"         -> 0
- *   ""            -> 0
- */
-int str_count_vowels(const char *s);
+    if (start > 0)
+    {
+        memmove(copy, copy + start, strlen(copy) - start + 1);
+    }
 
-/*
- * Gibt eine neu allokierte Kopie von 's' zurueck, bei der alle
- * Kleinbuchstaben in Grossbuchstaben umgewandelt wurden.
- * Andere Zeichen bleiben unveraendert.
- * NULL-Eingabe oder Speicherfehler -> NULL.
- * Beispiele:
- *   "hallo Welt!" -> "HALLO WELT!"
- *   "123abc"      -> "123ABC"
- *   ""            -> ""
- */
-char *str_to_upper(const char *s);
+    if (copy[0] == '\0')
+    {
+        return copy;
+    }
 
-/*
- * Gibt eine neu allokierten String zurueck, der 's' genau 'n' Mal
- * hintereinander enthaelt.
- * n == 0 -> gibt leeren String zurueck ("").
- * n < 0 oder NULL oder Speicherfehler -> NULL.
- * Beispiele:
- *   str_repeat("ab", 3) -> "ababab"
- *   str_repeat("x",  1) -> "x"
- *   str_repeat("hi", 0) -> ""
- */
-char *str_repeat(const char *s, int n);
+    int end = strlen(copy) - 1;
+    while (end >= 0 && (copy[end] == ' ' || copy[end] == '\t' || copy[end] == '\n' || copy[end] == '\r'))
+    {
+        end--;
+    }
 
-#endif /* TASK3_STRINGS_H */
+    copy[end + 1] = '\0';
+
+    return copy;
+}
+
+int str_to_int(const char *s, int *out)
+{
+    if (!s || !out)
+    {
+        return -1;
+    }
+
+    while (*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r')
+    {
+        s++;
+    }
+
+    if (*s == '\0')
+    {
+        return -1;
+    }
+
+    int sign = 1;
+    if (*s == '-')
+    {
+        sign = -1;
+        s++;
+    }
+    else if (*s == '+')
+    {
+        s++;
+    }
+
+    if (*s < '0' || *s > '9')
+    {
+        return -1;
+    }
+
+    int result = 0;
+    while (*s != '\0')
+    {
+        if (*s < '0' || *s > '9')
+        {
+            return -1;
+        }
+        result = result * 10 + (*s - '0');
+        s++;
+    }
+
+    *out = result * sign;
+
+    return 0;
+}
+
+int str_starts_with(const char *s, const char *prefix)
+{
+    if (s == NULL || prefix == NULL)
+        return 0;
+
+    int i = 0;
+
+    while (prefix[i] != '\0')
+    {
+        if (s[i] != prefix[i])
+            return 0;
+
+        i++;
+    }
+
+    return 1;
+}
+
+int str_count_vowels(const char *s)
+{
+    if (s == NULL)
+        return 0;
+
+    int count = 0;
+
+    for (int i = 0; s[i] != '\0'; i++)
+    {
+        if (s[i] == 'a' || s[i] == 'e' || s[i] == 'i' || s[i] == 'o' || s[i] == 'u' || s[i] == 'A' || s[i] == 'E' || s[i] == 'I' || s[i] == 'O' || s[i] == 'U')
+        {
+            count++;
+        }
+    }
+
+    return count;
+}
+
+char *str_to_upper(const char *s)
+{
+    if (s == NULL)
+    {
+        return NULL;
+    }
+
+    int len = 0;
+    while (s[len] != '\0')
+    {
+        len++;
+    }
+
+    char *result = malloc(len + 1);
+    if (result == NULL)
+    {
+        return NULL;
+    }
+
+    for (int i = 0; i <= len; i++)
+    {
+        if (s[i] >= 'a' && s[i] <= 'z')
+        {
+            result[i] = s[i] - 32;
+        }
+        else
+        {
+            result[i] = s[i];
+        }
+    }
+
+    return result;
+}
+
+char *str_repeat(const char *s, int n)
+{
+    if (s == NULL || n < 0)
+        return NULL;
+
+    char *copy = malloc(strlen(s) * n + 1);
+    if (!copy)
+        return NULL;
+
+    if (n == 0)
+    {
+        copy[0] = '\0';
+        return copy;
+    }
+    int count = 0;
+    for (int i = 0; i < n; i++)
+    {
+        int j = 0;
+        while (s[j] != '\0')
+        {
+            copy[count] = s[j];
+            count++;
+            j++;
+        }
+    }
+    copy[count] = '\0';
+
+    return copy;
+}

@@ -14,12 +14,13 @@
  * ERSTES wieder entnommen (FIFO, nicht LIFO).
  */
 
-typedef struct {
-    int *data;       /* dynamisches Array                  */
-    int  front;      /* Index des ersten Elements           */
-    int  back;       /* Index hinter dem letzten Element    */
-    int  size;       /* aktuelle Anzahl Elemente            */
-    int  capacity;   /* aktuell allokierte Kapazitaet       */
+typedef struct
+{
+    int *data;    /* dynamisches Array                  */
+    int front;    /* Index des ersten Elements           */
+    int back;     /* Index hinter dem letzten Element    */
+    int size;     /* aktuelle Anzahl Elemente            */
+    int capacity; /* aktuell allokierte Kapazitaet       */
 } Queue;
 
 /*
