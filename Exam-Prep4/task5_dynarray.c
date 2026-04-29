@@ -1,77 +1,205 @@
-#ifndef TASK5_DYNARRAY_H
-#define TASK5_DYNARRAY_H
+#include <stdlib.h>
+#include "task5_dynarray.h"
 
-/*
- * Aufgabe 5: Dynamisches double-Array
- *
- * Implementiere ein dynamisch wachsendes Array fuer double-Werte in
- * task5_dynarray.c. Die Kapazitaet verdoppelt sich bei Bedarf.
- * Aehnlich wie ein std::vector in C++.
- */
+DynArray *da_create(void)
+{
+    DynArray *a = malloc(sizeof(DynArray));
+    if (!a)
+    {
+        return NULL;
+    }
 
-typedef struct {
-    double *data;     /* dynamisches Array                */
-    int     size;     /* aktuelle Anzahl Elemente         */
-    int     capacity; /* aktuell allokierte Kapazitaet    */
-} DynArray;
+    a->data = malloc(4 * sizeof(double));
+    if (!a->data)
+    {
+        free(a);
+        return NULL;
+    }
 
-/*
- * Erstellt ein leeres DynArray mit initialer Kapazitaet 4.
- * Gibt NULL bei Speicherfehler zurueck.
- */
-DynArray *da_create(void);
+    a->size = 0;
+    a->capacity = 4;
 
-/*
- * Gibt den gesamten Speicher frei.
- * NULL-sicher.
- */
-void da_destroy(DynArray *a);
+    return a;
+}
 
-/*
- * Fuegt einen Wert am Ende hinzu.
- * Verdoppelt die Kapazitaet wenn size == capacity.
- * Gibt 0 bei Erfolg, -1 bei Fehler.
- */
-int da_push(DynArray *a, double value);
+void da_destroy(DynArray *a)
+{
+    if (a)
+    {
+        if (a->data)
+        {
+            free(a->data);
+        }
+        free(a);
+    }
+}
 
-/*
- * Gibt den Wert am Index zurueck.
- * Setzt *err auf -1 bei ungueltigem Index oder NULL-Eingabe, sonst 0.
- * Ungueltiger Index: index < 0 oder index >= size.
- */
-double da_get(const DynArray *a, int index, int *err);
+int da_push(DynArray *a, double value)
+{
+    if (!a)
+    {
+        return -1;
+    }
 
-/*
- * Entfernt das Element am gegebenen Index (verschiebt nachfolgende Elemente).
- * Gibt 0 bei Erfolg, -1 bei ungueltigem Index oder NULL.
- * Beispiel: [1.0, 2.0, 3.0, 4.0], remove_at(1) -> [1.0, 3.0, 4.0]
- */
-int da_remove_at(DynArray *a, int index);
+    if (a->size == a->capacity)
+    {
+        int new_capacity = (a->capacity == 0) ? 4 : a->capacity * 2;
+        double *new_data = realloc(a->data, new_capacity * sizeof(double));
 
-/*
- * Gibt den kleinsten Wert im Array zurueck.
- * Setzt *err auf -1 bei leerem Array oder NULL, sonst 0.
- */
-double da_min(const DynArray *a, int *err);
+        if (!new_data)
+        {
+            return -1;
+        }
 
-/*
- * Gibt den groessten Wert im Array zurueck.
- * Setzt *err auf -1 bei leerem Array oder NULL, sonst 0.
- */
-double da_max(const DynArray *a, int *err);
+        a->data = new_data;
+        a->capacity = new_capacity;
+    }
 
-/*
- * Berechnet und gibt den arithmetischen Mittelwert aller Elemente zurueck.
- * Setzt *err auf -1 bei leerem Array oder NULL, sonst 0.
- * Beispiel: [1.0, 2.0, 3.0] -> 2.0
- */
-double da_mean(const DynArray *a, int *err);
+    a->data[a->size] = value;
+    a->size++;
 
-/*
- * Sortiert das Array aufsteigend (in-place).
- * NULL oder leeres Array: keine Aktion.
- * Beispiel: [3.0, 1.5, 2.0] -> [1.5, 2.0, 3.0]
- */
-void da_sort(DynArray *a);
+    return 0;
+}
 
-#endif /* TASK5_DYNARRAY_H */
+double da_get(const DynArray *a, int index, int *err)
+{
+    if (!a || index < 0 || index >= a->size)
+    {
+        if (err)
+        {
+            *err = -1;
+        }
+        return 0.0;
+    }
+
+    if (err)
+    {
+        *err = 0;
+    }
+
+    return a->data[index];
+}
+
+int da_remove_at(DynArray *a, int index)
+{
+    if (!a || index < 0 || index >= a->size)
+    {
+        return -1;
+    }
+
+    for (int i = index; i < a->size - 1; i++)
+    {
+        a->data[i] = a->data[i + 1];
+    }
+
+    a->size--;
+
+    return 0;
+}
+
+double da_min(const DynArray *a, int *err)
+{
+    if (!a || a->size == 0)
+    {
+        if (err)
+        {
+            *err = -1;
+        }
+        return 0.0;
+    }
+
+    double min_val = a->data[0];
+    for (int i = 1; i < a->size; i++)
+    {
+        if (a->data[i] < min_val)
+        {
+            min_val = a->data[i];
+        }
+    }
+
+    if (err)
+    {
+        *err = 0;
+    }
+
+    return min_val;
+}
+
+double da_max(const DynArray *a, int *err)
+{
+    if (!a || a->size == 0)
+    {
+        if (err)
+        {
+            *err = -1;
+        }
+        return 0.0;
+    }
+
+    double max_val = a->data[0];
+    for (int i = 1; i < a->size; i++)
+    {
+        if (a->data[i] > max_val)
+        {
+            max_val = a->data[i];
+        }
+    }
+
+    if (err)
+    {
+        *err = 0;
+    }
+
+    return max_val;
+}
+
+double da_mean(const DynArray *a, int *err)
+{
+    if (!a || a->size == 0)
+    {
+        if (err)
+        {
+            *err = -1;
+        }
+        return 0.0;
+    }
+
+    double sum = 0.0;
+    for (int i = 0; i < a->size; i++)
+    {
+        sum += a->data[i];
+    }
+
+    if (err)
+    {
+        *err = 0;
+    }
+
+    return sum / a->size;
+}
+
+static int compare_doubles(const void *p1, const void *p2)
+{
+    double d1 = *(const double *)p1;
+    double d2 = *(const double *)p2;
+
+    if (d1 < d2)
+    {
+        return -1;
+    }
+    if (d1 > d2)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+void da_sort(DynArray *a)
+{
+    if (!a || a->size <= 1)
+    {
+        return;
+    }
+
+    qsort(a->data, a->size, sizeof(double), compare_doubles);
+}

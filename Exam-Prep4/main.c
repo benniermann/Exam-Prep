@@ -14,9 +14,9 @@
 // ============================================================================
 #define TEST_TASK_1 0 /* File I/O                        */
 #define TEST_TASK_2 0 /* FIFO-Queue                      */
-#define TEST_TASK_3 1 /* String-Operationen              */
+#define TEST_TASK_3 0 /* String-Operationen              */
 #define TEST_TASK_4 0 /* Bit-Manipulation                */
-#define TEST_TASK_5 0 /* Dynamisches double-Array        */
+#define TEST_TASK_5 1 /* Dynamisches double-Array        */
 
 // ----------------------------------------------------------------------------
 static void print_result(const char *name, int passed)
