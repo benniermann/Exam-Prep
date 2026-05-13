@@ -1,0 +1,2497 @@
+\documentclass[10pt, a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{parskip}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{inconsolata}
+\usepackage{upquote}
+
+\geometry{a4paper, top=2cm, bottom=2cm, left=2cm, right=2cm}
+
+\definecolor{backcolour}{rgb}{0.96, 0.96, 0.96}
+\definecolor{commentcolor}{rgb}{0.25, 0.50, 0.35}
+\definecolor{keywordcolor}{rgb}{0.13, 0.23, 0.85}
+\definecolor{stringcolor}{rgb}{0.80, 0.20, 0.20}
+\definecolor{typecolor}{rgb}{0.18, 0.50, 0.60}
+\definecolor{numbercolor}{rgb}{0.5, 0.5, 0.5}
+
+\lstset{
+    language=C,
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{backcolour},
+    columns=fullflexible,
+    keepspaces=true,
+    frame=single,
+    numbers=none,
+    numberstyle=\tiny\color{numbercolor},
+    numbersep=6pt,
+    breaklines=true,
+    tabsize=4,
+    showstringspaces=false,
+    keywordstyle=\color{keywordcolor}\bfseries,
+    commentstyle=\color{commentcolor}\itshape,
+    stringstyle=\color{stringcolor},
+    classoffset=1,
+    morekeywords={uint32_t, uint8_t, uint16_t, size_t, SList, SNode, DList, DNode, Warehouse, Product, Item, Node, Stack, Queue, DynArray, Account, AccountType, Student, function_profiler, function_entry, event, note},
+    keywordstyle=\color{typecolor}\bfseries,
+    classoffset=0
+}
+
+
+\setlength{\parskip}{4pt}
+
+\begin{document}
+
+\begin{center}
+    {\large\bfseries Exam Prep -- C Funktionen}
+\end{center}
+
+\tableofcontents
+\newpage
+
+% ===========================================================================
+\section{Bitoperationen}
+% ===========================================================================
+
+\subsection{set\_bit}
+\begin{lstlisting}
+uint32_t set_bit(uint32_t val, int pos)
+{
+    return val | (1U << pos);
+}
+\end{lstlisting}
+Setzt Bit an Position \texttt{pos} in \texttt{val} durch OR-Verkn\"upfung mit einer Maske.
+
+\subsection{clear\_bit}
+\begin{lstlisting}
+uint32_t clear_bit(uint32_t val, int pos)
+{
+    return val & ~(1U << pos);
+}
+\end{lstlisting}
+L\"oscht Bit an Position \texttt{pos} mit AND NOT einer Maske. Das Tilde-Operator invertiert alle Bits der Maske.
+
+\subsection{toggle\_bit}
+\begin{lstlisting}
+uint32_t toggle_bit(uint32_t val, int pos)
+{
+    return val ^ (1U << pos);
+}
+\end{lstlisting}
+Kippt Bit an Position \texttt{pos} durch XOR: 0 wird 1, 1 wird 0.
+
+\subsection{get\_bit}
+\begin{lstlisting}
+int get_bit(uint32_t val, int pos)
+{
+    return (val >> pos) & 1U;
+}
+\end{lstlisting}
+Liest das Bit an Position \texttt{pos} aus: erst nach rechts schieben, dann mit 1 maskieren.
+
+\subsection{count\_ones (Variante 1: Shift)}
+\begin{lstlisting}
+int count_ones(uint32_t val)
+{
+    int count = 0;
+    while (val > 0) {
+        count += val & 1;
+        val >>= 1;
+    }
+    return count;
+}
+\end{lstlisting}
+Z\"ahlt gesetzte Bits (Hamming-Gewicht) durch iteratives Pr\"ufen des LSB und Rechtsschieben.
+
+\subsection{count\_ones (Variante 2: Kernighan)}
+\begin{lstlisting}
+int count_ones(unsigned int n)
+{
+    int count = 0;
+    while (n != 0) {
+        n &= (n - 1);
+        count++;
+    }
+    return count;
+}
+\end{lstlisting}
+Kernighans Methode: \texttt{n \& (n-1)} l\"oscht das niedrigste gesetzte Bit. L\"auft nur so oft wie Bits gesetzt sind, daher schneller als Variante 1.
+
+\subsection{pack\_rgb}
+\begin{lstlisting}
+uint32_t pack_rgb(uint8_t r, uint8_t g, uint8_t b)
+{
+    return ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+}
+\end{lstlisting}
+Packt drei 8-Bit-Farbkan\"ale in ein 32-Bit-Wort im Format \texttt{0x00RRGGBB}.
+
+\subsection{unpack\_rgb}
+\begin{lstlisting}
+void unpack_rgb(uint32_t packed, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+    if (r != NULL) *r = (packed >> 16) & 0xFF;
+    if (g != NULL) *g = (packed >> 8)  & 0xFF;
+    if (b != NULL) *b =  packed        & 0xFF;
+}
+\end{lstlisting}
+Extrahiert die drei Farbkan\"ale aus einem gepackten 32-Bit-Wert durch Schieben und Maskieren mit \texttt{0xFF}.
+
+\subsection{bit\_set}
+\begin{lstlisting}
+unsigned int bit_set(unsigned int n, int pos)
+{
+    if (pos < 0 || pos > 31) return n;
+    return n | (1 << pos);
+}
+\end{lstlisting}
+Setzt Bit an Position \texttt{pos} mit Bereichspr\"ufung; gibt \texttt{n} unver\"andert zur\"uck falls \texttt{pos} ung\"ultig.
+
+\subsection{bit\_clear}
+\begin{lstlisting}
+unsigned int bit_clear(unsigned int n, int pos)
+{
+    if (pos < 0 || pos > 31) return n;
+    return n & ~(1 << pos);
+}
+\end{lstlisting}
+L\"oscht Bit an Position \texttt{pos} mit Bereichspr\"ufung.
+
+\subsection{bit\_toggle}
+\begin{lstlisting}
+unsigned int bit_toggle(unsigned int n, int pos)
+{
+    if (pos < 0 || pos > 31) return n;
+    return n ^ (1 << pos);
+}
+\end{lstlisting}
+Kippt Bit an Position \texttt{pos} mit Bereichspr\"ufung.
+
+\subsection{bit\_get}
+\begin{lstlisting}
+int bit_get(unsigned int n, int pos)
+{
+    if (pos < 0 || pos > 31) return 0;
+    return (n >> pos) & 1;
+}
+\end{lstlisting}
+Liest Bit an Position \texttt{pos} mit Bereichspr\"ufung; gibt 0 zur\"uck bei ung\"ultigem Index.
+
+\subsection{is\_power\_of\_two}
+\begin{lstlisting}
+int is_power_of_two(unsigned int n)
+{
+    if (n == 0) return 0;
+    return (n & (n - 1)) == 0;
+}
+\end{lstlisting}
+Pr\"uft ob \texttt{n} eine Zweierpotenz ist. Zweierpotenzen haben genau ein gesetztes Bit, daher gilt \texttt{n \& (n-1) == 0}.
+
+\subsection{reverse\_byte}
+\begin{lstlisting}
+unsigned int reverse_byte(unsigned int n)
+{
+    unsigned int result = 0;
+    n &= 0xFF;
+    for (int i = 0; i < 8; i++) {
+        result <<= 1;
+        result |= (n & 1);
+        n >>= 1;
+    }
+    return result;
+}
+\end{lstlisting}
+Kehrt die Bitreihenfolge eines einzelnen Bytes um. Die Schleife liest Bits von rechts und schreibt sie nach links in \texttt{result}.
+
+\newpage
+% ===========================================================================
+\section{Strings}
+% ===========================================================================
+
+\subsection{is\_palindrome}
+\begin{lstlisting}
+int is_palindrome(const char *s)
+{
+    if (s == NULL) return 0;
+    int len = strlen(s);
+    if (len == 0) return 1;
+    int left = 0;
+    int right = len - 1;
+    while (left < right) {
+        if (tolower(s[left]) != tolower(s[right])) return 0;
+        left++;
+        right--;
+    }
+    return 1;
+}
+\end{lstlisting}
+Pr\"uft ob ein String ein Palindrom ist (Gro\ss-/Kleinschreibung ignoriert). Zwei-Zeiger-Ansatz von au\ss en nach innen, O(n).
+
+\subsection{count\_words}
+\begin{lstlisting}
+int count_words(const char *s)
+{
+    if (s == NULL) return 0;
+    int count = 0;
+    int in_word = 0;
+    for (int i = 0; s[i] != '\0'; i++) {
+        if (s[i] != ' ') {
+            if (in_word == 0) { count++; in_word = 1; }
+        } else {
+            in_word = 0;
+        }
+    }
+    return count;
+}
+\end{lstlisting}
+Z\"ahlt W\"orter (durch Leerzeichen getrennt) mit einem Zustandsflag \texttt{in\_word}. Mehrfache Leerzeichen werden korrekt behandelt.
+
+\subsection{str\_reverse}
+\begin{lstlisting}
+char *str_reverse(const char *s)
+{
+    if (s == NULL) return NULL;
+    int len = strlen(s);
+    char *reversed = malloc(len + 1);
+    if (reversed == NULL) return NULL;
+    for (int i = 0; i < len; i++)
+        reversed[i] = s[len - 1 - i];
+    reversed[len] = '\0';
+    return reversed;
+}
+\end{lstlisting}
+Gibt eine neu allokierte umgekehrte Kopie des Strings zur\"uck. Der Aufrufer ist verantwortlich f\"ur \texttt{free()}.
+
+\subsection{str\_replace\_char}
+\begin{lstlisting}
+int str_replace_char(char *s, char old_char, char new_char)
+{
+    if (s == NULL) return -1;
+    int count = 0;
+    for (int i = 0; s[i] != '\0'; i++) {
+        if (s[i] == old_char) { s[i] = new_char; count++; }
+    }
+    return count;
+}
+\end{lstlisting}
+Ersetzt alle Vorkommen von \texttt{old\_char} durch \texttt{new\_char} in-place und gibt die Anzahl der Ersetzungen zur\"uck.
+
+\subsection{str\_trim}
+\begin{lstlisting}
+char *str_trim(const char *s)
+{
+    if (s == NULL) return NULL;
+    char *copy = malloc(strlen(s) + 1);
+    if (!copy) return NULL;
+    strcpy(copy, s);
+    int start = 0;
+    while (copy[start] == ' ' || copy[start] == '\t' ||
+           copy[start] == '\n' || copy[start] == '\r')
+        start++;
+    if (start > 0)
+        memmove(copy, copy + start, strlen(copy) - start + 1);
+    if (copy[0] == '\0') return copy;
+    int end = strlen(copy) - 1;
+    while (end >= 0 && (copy[end] == ' ' || copy[end] == '\t' ||
+                        copy[end] == '\n' || copy[end] == '\r'))
+        end--;
+    copy[end + 1] = '\0';
+    return copy;
+}
+\end{lstlisting}
+Entfernt f\"uhrende und nachfolgende Whitespace-Zeichen aus einer Kopie des Strings. Der Aufrufer muss den zur\"uckgegebenen Zeiger freigeben.
+
+\subsection{str\_to\_int}
+\begin{lstlisting}
+int str_to_int(const char *s, int *out)
+{
+    if (!s || !out) return -1;
+    while (*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r') s++;
+    if (*s == '\0') return -1;
+    int sign = 1;
+    if (*s == '-') { sign = -1; s++; }
+    else if (*s == '+') s++;
+    if (*s < '0' || *s > '9') return -1;
+    int result = 0;
+    while (*s != '\0') {
+        if (*s < '0' || *s > '9') return -1;
+        result = result * 10 + (*s - '0');
+        s++;
+    }
+    *out = result * sign;
+    return 0;
+}
+\end{lstlisting}
+Wandelt einen String in einen Integer um (\"ahnlich \texttt{atoi}, aber mit Fehlerr\"uckgabe). Gibt -1 bei ung\"ultigem Input, 0 bei Erfolg.
+
+\subsection{str\_starts\_with}
+\begin{lstlisting}
+int str_starts_with(const char *s, const char *prefix)
+{
+    if (s == NULL || prefix == NULL) return 0;
+    int i = 0;
+    while (prefix[i] != '\0') {
+        if (s[i] != prefix[i]) return 0;
+        i++;
+    }
+    return 1;
+}
+\end{lstlisting}
+Pr\"uft ob \texttt{s} mit \texttt{prefix} beginnt. Gibt 1 zurueck wenn ja, 0 wenn nein oder bei NULL-Eingabe.
+
+\subsection{str\_count\_vowels}
+\begin{lstlisting}
+int str_count_vowels(const char *s)
+{
+    if (s == NULL) return 0;
+    int count = 0;
+    for (int i = 0; s[i] != '\0'; i++) {
+        if (s[i]=='a'||s[i]=='e'||s[i]=='i'||s[i]=='o'||s[i]=='u'||
+            s[i]=='A'||s[i]=='E'||s[i]=='I'||s[i]=='O'||s[i]=='U')
+            count++;
+    }
+    return count;
+}
+\end{lstlisting}
+Zaehlt Vokale (gro\ss\ und klein) im String durch einfachen Zeichenvergleich.
+
+\subsection{str\_to\_upper}
+\begin{lstlisting}
+char *str_to_upper(const char *s)
+{
+    if (s == NULL) return NULL;
+    int len = 0;
+    while (s[len] != '\0') len++;
+    char *result = malloc(len + 1);
+    if (result == NULL) return NULL;
+    for (int i = 0; i <= len; i++) {
+        if (s[i] >= 'a' && s[i] <= 'z')
+            result[i] = s[i] - 32;
+        else
+            result[i] = s[i];
+    }
+    return result;
+}
+\end{lstlisting}
+Gibt eine neu allokierte Gro\ss buchstaben-Kopie des Strings zur\"uck. Nutzt den ASCII-Abstand 32 zwischen Gro\ss - und Kleinbuchstaben.
+
+\subsection{str\_repeat}
+\begin{lstlisting}
+char *str_repeat(const char *s, int n)
+{
+    if (s == NULL || n < 0) return NULL;
+    char *copy = malloc(strlen(s) * n + 1);
+    if (!copy) return NULL;
+    if (n == 0) { copy[0] = '\0'; return copy; }
+    int count = 0;
+    for (int i = 0; i < n; i++) {
+        int j = 0;
+        while (s[j] != '\0') { copy[count++] = s[j++]; }
+    }
+    copy[count] = '\0';
+    return copy;
+}
+\end{lstlisting}
+Wiederholt einen String \texttt{n}-mal und gibt das Ergebnis als neu allokierten String zur\"uck.
+
+\newpage
+% ===========================================================================
+\section{Encoding / Verschl\"usselung}
+% ===========================================================================
+
+\subsection{caesar\_encode}
+\begin{lstlisting}
+char *caesar_encode(const char *text, int shift)
+{
+    if (text == NULL) return NULL;
+    size_t len = strlen(text);
+    char *res = malloc(len + 1);
+    if (res == NULL) return NULL;
+    shift = shift % 26;
+    if (shift < 0) shift += 26;
+    for (size_t i = 0; i < len; i++) {
+        char c = text[i];
+        if      (c >= 'a' && c <= 'z') res[i] = 'a' + (c - 'a' + shift) % 26;
+        else if (c >= 'A' && c <= 'Z') res[i] = 'A' + (c - 'A' + shift) % 26;
+        else                           res[i] = c;
+    }
+    res[len] = '\0';
+    return res;
+}
+\end{lstlisting}
+Verschl\"usselt einen String mit der Caesar-Chiffre (Verschiebung um \texttt{shift} Positionen). Nicht-Buchstaben werden unver\"andert \"ubernommen; der Aufrufer muss freigeben.
+
+\subsection{caesar\_decode}
+\begin{lstlisting}
+char *caesar_decode(const char *text, int shift)
+{
+    if (text == NULL) return NULL;
+    int s = shift % 26;
+    if (s < 0) s += 26;
+    return caesar_encode(text, (26 - s) % 26);
+}
+\end{lstlisting}
+Entschl\"usselt durch Aufruf von \texttt{caesar\_encode} mit dem inversen Shift \texttt{(26-s) \% 26}. Elegante Wiederverwendung.
+
+\subsection{xor\_encode}
+\begin{lstlisting}
+char *xor_encode(const char *text, uint8_t key)
+{
+    if (text == NULL) return NULL;
+    size_t len = strlen(text);
+    char *res = malloc(len + 1);
+    if (res == NULL) return NULL;
+    for (size_t i = 0; i < len; i++) res[i] = text[i] ^ key;
+    res[len] = '\0';
+    return res;
+}
+\end{lstlisting}
+XOR-Verschl\"usselung mit einem einzelnen Byte-Schl\"ussel. Symmetrisch: doppeltes XOR mit gleichem Key ergibt den Originaltext.
+
+\subsection{is\_rotation}
+\begin{lstlisting}
+int is_rotation(const char *a, const char *b)
+{
+    if (a == NULL || b == NULL) return 0;
+    size_t len_a = strlen(a), len_b = strlen(b);
+    if (len_a != len_b) return 0;
+    if (len_a == 0) return 1;
+    char *concat = malloc(len_a * 2 + 1);
+    if (concat == NULL) return 0;
+    strcpy(concat, a);
+    strcat(concat, a);
+    int result = (strstr(concat, b) != NULL) ? 1 : 0;
+    free(concat);
+    return result;
+}
+\end{lstlisting}
+Pr\"uft ob \texttt{b} eine Rotation von \texttt{a} ist. Trick: jede Rotation von \texttt{a} ist ein Teilstring in \texttt{aa}.
+
+\subsection{rle\_encode}
+\begin{lstlisting}
+char *rle_encode(const char *text)
+{
+    if (text == NULL) return NULL;
+    size_t len = strlen(text);
+    if (len == 0) {
+        char *res = malloc(1);
+        if (res) res[0] = '\0';
+        return res;
+    }
+    char *res = malloc(len * 12 + 1);
+    if (res == NULL) return NULL;
+    int count = 1;
+    char current = text[0];
+    char buf[32];
+    size_t pos = 0;
+    for (size_t i = 1; i <= len; i++) {
+        if (i < len && text[i] == current) {
+            count++;
+        } else {
+            int w = sprintf(buf, "%d%c", count, current);
+            strcpy(res + pos, buf);
+            pos += w;
+            if (i < len) { current = text[i]; count = 1; }
+        }
+    }
+    char *shrink = realloc(res, pos + 1);
+    return shrink ? shrink : res;
+}
+\end{lstlisting}
+Run-Length-Encoding: \texttt{"aaabbc"} $\to$ \texttt{"3a2b1c"}. Gro\ss z\"ugige Erstallokation, dann \texttt{realloc} auf tats\"achliche L\"ange.
+
+\subsection{rle\_decode}
+\begin{lstlisting}
+char *rle_decode(const char *encoded)
+{
+    if (encoded == NULL) return NULL;
+    if (encoded[0] == '\0') {
+        char *res = malloc(1);
+        if (res) res[0] = '\0';
+        return res;
+    }
+    size_t total_len = 0, i = 0;
+    size_t enc_len = strlen(encoded);
+    while (i < enc_len) {
+        if (!isdigit((unsigned char)encoded[i])) return NULL;
+        int count = 0;
+        while (i < enc_len && isdigit((unsigned char)encoded[i]))
+            count = count * 10 + (encoded[i++] - '0');
+        if (count == 0 || i >= enc_len) return NULL;
+        total_len += count;
+        i++;
+    }
+    char *res = malloc(total_len + 1);
+    if (res == NULL) return NULL;
+    i = 0; size_t pos = 0;
+    while (i < enc_len) {
+        int count = 0;
+        while (i < enc_len && isdigit((unsigned char)encoded[i]))
+            count = count * 10 + (encoded[i++] - '0');
+        char c = encoded[i++];
+        for (int k = 0; k < count; k++) res[pos++] = c;
+    }
+    res[total_len] = '\0';
+    return res;
+}
+\end{lstlisting}
+Zwei-Pass-Dekodierung: erster Pass berechnet die Ausgabel\"ange, zweiter Pass f\"ullt den Buffer. Gibt NULL bei ung\"ultigem Format zur\"uck.
+
+\subsection{compress\_rle}
+\begin{lstlisting}
+void compress_rle(const char *src, char *dest)
+{
+    if (src[0] == '\0') { dest[0] = '\0'; return; }
+    char current = src[0];
+    int count = 1;
+    int pos = 0;
+    for (int i = 1; src[i] != '\0'; i++) {
+        if (current == src[i]) count++;
+        else {
+            pos += sprintf(dest + pos, "%c%d", current, count);
+            current = src[i];
+            count = 1;
+        }
+    }
+    sprintf(dest + pos, "%c%d", current, count);
+}
+\end{lstlisting}
+RLE-Kompression mit Format Zeichen-dann-Zahl (\texttt{"aaabbc"} $\to$ \texttt{"a3b2c1"}). Schreibt direkt in Aufrufer-Buffer ohne Heap-Allokation -- kein Gr\"o\ss encheck!
+
+\subsection{encrypt (Caesar auf Datei)}
+\begin{lstlisting}
+void encrypt(const char *message, char offset, FILE *output)
+{
+    size_t len = strlen(message);
+    fprintf(output, "%lu;", len);
+    int shift = offset % 26;
+    if (shift < 0) shift += 26;
+    for (unsigned int i = 0; i < len; i++) {
+        char c = message[i];
+        if (c == ' ')
+            fputc(' ', output);
+        else {
+            int pos = c - 'a';
+            int encrypted = (pos + shift) % 26;
+            fputc((char)('a' + encrypted), output);
+        }
+    }
+}
+\end{lstlisting}
+Schreibt die verschl\"usselte Nachricht in eine Datei. Das Format ist \texttt{L\"ange;verschl\"usselter\_text}, damit \texttt{decrypt} die L\"ange kennt.
+
+\subsection{decrypt (Caesar aus Datei)}
+\begin{lstlisting}
+char *decrypt(char offset, FILE *input)
+{
+    if (input == NULL) return NULL;
+    size_t length;
+    if (fscanf(input, "%lu;", &length) != 1) return NULL;
+    char *message = malloc(length + 1);
+    if (message == NULL) return NULL;
+    int shift = offset % 26;
+    if (shift < 0) shift += 26;
+    for (size_t i = 0; i < length; i++) {
+        int c = fgetc(input);
+        if (c == EOF) { free(message); return NULL; }
+        if (c == ' ') message[i] = ' ';
+        else {
+            int pos = c - 'a';
+            int decrypted = pos - shift;
+            if (decrypted < 0) decrypted += 26;
+            message[i] = (char)('a' + decrypted);
+        }
+    }
+    message[length] = '\0';
+    return message;
+}
+\end{lstlisting}
+Liest L\"ange aus Header, allokiert Buffer und entschl\"usselt zeichenweise aus der Datei. Der Aufrufer muss freigeben.
+
+\subsection{encode (RLE auf Datei)}
+\begin{lstlisting}
+void encode(const char *input, FILE *output)
+{
+    for (int i = 0; input[i] != '\0'; i++) {
+        int count = 1;
+        while (input[i] == input[i + 1]) { count++; i++; }
+        fprintf(output, "%c:%d;", input[i], count);
+    }
+}
+\end{lstlisting}
+Schreibt RLE-kodierte Daten im Format \texttt{Z:N;} in eine Datei (z.B. \texttt{a:3;b:2;c:1;}).
+
+\subsection{decode (RLE aus Datei)}
+\begin{lstlisting}
+void decode(FILE *input, char *output)
+{
+    char c;
+    int count;
+    int index = 0;
+    while (fscanf(input, "%c:%d;", &c, &count) == 2) {
+        for (int i = 0; i < count; i++)
+            output[index++] = c;
+    }
+    output[index] = '\0';
+}
+\end{lstlisting}
+Liest RLE-kodierte Daten aus einer Datei und baut den Originalstring im Ausgabe-Buffer auf.
+
+\newpage
+% ===========================================================================
+\section{Rekursion}
+% ===========================================================================
+
+\subsection{fast\_power}
+\begin{lstlisting}
+long long fast_power(long long x, int n)
+{
+    if (n == 0) return 1;
+    long long half = fast_power(x, n / 2);
+    if (n % 2 == 0) return half * half;
+    else            return x * half * half;
+}
+\end{lstlisting}
+Schnelle Potenzierung durch wiederholtes Quadrieren (Exponentiation by Squaring). Reduziert die Komplexit\"at von O(n) auf O(log n).
+
+\subsection{gcd}
+\begin{lstlisting}
+int gcd(int a, int b)
+{
+    if (b == 0) return a;
+    return gcd(b, a % b);
+}
+\end{lstlisting}
+Euklidischer Algorithmus: ggT(a,b) = ggT(b, a mod b), Abbruch wenn b = 0.
+
+\subsection{hanoi}
+\begin{lstlisting}
+int hanoi(int n, char from, char to, char aux)
+{
+    if (n == 0) return 0;
+    int moves = 0;
+    moves += hanoi(n - 1, from, aux, to);
+    printf("Bewege Scheibe %d von %c nach %c\n", n, from, to);
+    moves++;
+    moves += hanoi(n - 1, aux, to, from);
+    return moves;
+}
+\end{lstlisting}
+T\"urme von Hanoi: $n-1$ Scheiben nach \texttt{aux}, Scheibe $n$ direkt, $n-1$ Scheiben nach \texttt{to}. Gesamt: $2^n - 1$ Z\"uge.
+
+\subsection{count\_paths}
+\begin{lstlisting}
+int count_paths(int rows, int cols)
+{
+    if (rows == 1 || cols == 1) return 1;
+    return count_paths(rows - 1, cols) + count_paths(rows, cols - 1);
+}
+\end{lstlisting}
+Z\"ahlt Pfade in einem Gitter (nur rechts/runter) rekursiv. Basisfall: 1-zeilige oder 1-spaltige Gitter haben genau einen Pfad.
+
+\subsection{count\_paths\_memo}
+\begin{lstlisting}
+int count_paths_memo(int rows, int cols, int memo[][20])
+{
+    if (rows == 1 || cols == 1) return 1;
+    if (memo != NULL && memo[rows - 1][cols - 1] != -1)
+        return memo[rows - 1][cols - 1];
+    int result = count_paths_memo(rows - 1, cols, memo)
+               + count_paths_memo(rows, cols - 1, memo);
+    if (memo != NULL) memo[rows - 1][cols - 1] = result;
+    return result;
+}
+\end{lstlisting}
+Wie \texttt{count\_paths}, aber mit Memoization-Array (mit -1 initialisieren). Reduziert die Komplexit\"at von exponentiell auf O(rows$\times$cols).
+
+\subsection{fib (rekursiv)}
+\begin{lstlisting}
+long long fib(int n)
+{
+    if (n < 0) return -1;
+    if (n <= 1) return n;
+    return fib(n - 1) + fib(n - 2);
+}
+\end{lstlisting}
+Berechnet die $n$-te Fibonacci-Zahl rekursiv. Achtung: exponentiell langsam ohne Memoization ($O(2^n)$).
+
+\subsection{fibonacci (iterativ-rekursiv)}
+\begin{lstlisting}
+unsigned int fibonacci(unsigned int n)
+{
+    if (n == 0) return 0;
+    if (n == 1) return 1;
+    return fibonacci(n - 2) + fibonacci(n - 1);
+}
+\end{lstlisting}
+Alternative einfache rekursive Implementierung ohne negativen Basisfall. Ebenfalls $O(2^n)$ ohne Optimierung.
+
+\subsection{digit\_sum}
+\begin{lstlisting}
+int digit_sum(int n)
+{
+    if (n <= 0) return 0;
+    return (n % 10) + digit_sum(n / 10);
+}
+\end{lstlisting}
+Berechnet rekursiv die Quersumme einer positiven ganzen Zahl. Extrahiert die letzte Stelle mit \texttt{\% 10} und k\"urzt mit \texttt{/ 10}.
+
+\subsection{binary\_search (rekursiv)}
+\begin{lstlisting}
+int binary_search(const int *arr, int low, int high, int target)
+{
+    if (low > high) return -1;
+    int mid = low + (high - low) / 2;
+    if (arr[mid] == target) return mid;
+    if (arr[mid] > target) return binary_search(arr, low, mid - 1, target);
+    return binary_search(arr, mid + 1, high, target);
+}
+\end{lstlisting}
+Rekursive Bin\"arsuche in einem sortierten Array, O(log n). Gibt Index des Zielwerts oder -1 zur\"uck.
+
+\subsection{count\_char}
+\begin{lstlisting}
+int count_char(const char *s, char c)
+{
+    if (s == NULL || *s == '\0') return 0;
+    if (*s == c) return 1 + count_char(s + 1, c);
+    return count_char(s + 1, c);
+}
+\end{lstlisting}
+Z\"ahlt rekursiv die Vorkommen von Zeichen \texttt{c} im String. Klassisches Beispiel f\"ur Schwanzrekursion auf Strings.
+
+\subsection{calculate\_arrays}
+\begin{lstlisting}
+int calculate_arrays(const int *numbers, unsigned int length,
+                     const char *operations)
+{
+    int result = numbers[0];
+    for (unsigned int i = 0; i < length - 1; i++) {
+        int next = numbers[i + 1];
+        char op = operations[i];
+        switch (op) {
+            case '+': result = result + next; break;
+            case '-': result = result - next; break;
+            case '*': result = result * next; break;
+            case '/': if (next != 0) result = result / next; break;
+        }
+    }
+    return result;
+}
+\end{lstlisting}
+Wendet eine Folge von Rechenoperationen auf ein Zahlen-Array an. Division durch Null wird abgefangen; das Ergebnis bleibt dann unver\"andert.
+
+\newpage
+% ===========================================================================
+\section{Structs / Strukturen}
+% ===========================================================================
+
+\subsection{typedef}
+\begin{lstlisting}
+typedef struct {
+    int    id;
+    char   name[MAX_NAME_LEN];
+    double grades[MAX_GRADES];
+    int    grade_count;
+} Student;
+\end{lstlisting}
+
+\subsection{student\_average}
+\begin{lstlisting}
+double student_average(const Student *s)
+{
+    if (s == NULL || s->grade_count == 0) return 0.0;
+    double sum = s->grades[0];
+    for (int i = 1; i < s->grade_count; i++) sum += s->grades[i];
+    return sum / (double)s->grade_count;
+}
+\end{lstlisting}
+Berechnet den Notendurchschnitt eines Studenten. R\"uckgabe 0.0 bei NULL oder keinen Noten.
+
+\subsection{find\_best\_student}
+\begin{lstlisting}
+Student *find_best_student(Student *students, int n)
+{
+    if (n <= 0 || students == NULL) return NULL;
+    int best_index = 0;
+    float best = student_average(&students[0]);
+    for (unsigned int i = 1; i < n; i++) {
+        if (student_average(&students[i]) < best) {
+            best = student_average(&students[i]);
+            best_index = i;
+        }
+    }
+    return &students[best_index];
+}
+\end{lstlisting}
+Findet den Studenten mit dem niedrigsten Notendurchschnitt (beste Note). Gibt Zeiger ins Array zur\"uck (kein Kopieren).
+
+\subsection{sort\_students\_by\_average}
+\begin{lstlisting}
+void sort_students_by_average(Student *students, int n)
+{
+    if (n <= 0 || students == NULL) return;
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (student_average(&students[j]) >
+                student_average(&students[j + 1])) {
+                Student temp = students[j];
+                students[j] = students[j + 1];
+                students[j + 1] = temp;
+            }
+        }
+    }
+}
+\end{lstlisting}
+Bubble Sort des Studenten-Arrays nach Notendurchschnitt aufsteigend. Sortiert in-place, O($n^2$).
+
+\subsection{student\_passed\_all}
+\begin{lstlisting}
+int student_passed_all(const Student *s)
+{
+    if (s == NULL || s->grade_count == 0) return 0;
+    for (int i = 0; i < s->grade_count; i++) {
+        if (s->grades[i] > 4.0) return 0;
+    }
+    return 1;
+}
+\end{lstlisting}
+Pr\"uft ob ein Student alle F\"acher bestanden hat (Note $\leq 4.0$). Gibt 0 zur\"uck sobald eine nicht bestandene Note gefunden wird.
+
+\subsection{typedef}
+\begin{lstlisting}
+typedef enum {
+    ACCOUNT_CHECKING = 0,
+    ACCOUNT_SAVINGS  = 1
+} AccountType;
+
+typedef struct {
+    int         id;
+    char        owner[MAX_OWNER_LEN];
+    AccountType type;
+    double      balance;
+} Account;
+\end{lstlisting}
+
+\subsection{account\_deposit}
+\begin{lstlisting}
+int account_deposit(Account *a, double amount)
+{
+    if (a == NULL || amount < 0) return -1;
+    a->balance += amount;
+    return 0;
+}
+\end{lstlisting}
+Buchung einer Einzahlung auf ein Konto. Gibt -1 bei ung\"ultigem Konto oder negativem Betrag zur\"uck.
+
+\subsection{account\_withdraw}
+\begin{lstlisting}
+int account_withdraw(Account *a, double amount)
+{
+    if (a == NULL || amount < 0) return -1;
+    if (a->balance - amount < 0) return -1;
+    a->balance -= amount;
+    return 0;
+}
+\end{lstlisting}
+Hebt einen Betrag vom Konto ab. Schlagen Betragspr\"ufung oder Deckungspr\"ufung fehl, wird -1 zur\"uckgegeben.
+
+\subsection{find\_richest}
+\begin{lstlisting}
+Account *find_richest(Account *accounts, int n)
+{
+    if (n <= 0 || accounts == NULL) return NULL;
+    int richest = accounts[0].balance;
+    int index = 0;
+    for (int i = 1; i < n; i++) {
+        if (accounts[i].balance > richest) {
+            richest = accounts[i].balance;
+            index = i;
+        }
+    }
+    return &accounts[index];
+}
+\end{lstlisting}
+Findet das Konto mit dem h\"ochsten Kontostand durch lineare Suche. Gibt Zeiger ins Array zur\"uck.
+
+\subsection{total\_balance\_by\_type}
+\begin{lstlisting}
+double total_balance_by_type(const Account *accounts, int n,
+                             AccountType type)
+{
+    if (n <= 0 || accounts == NULL) return 0.0;
+    double balance = 0;
+    for (int i = 0; i < n; i++) {
+        if (accounts[i].type == type) balance += accounts[i].balance;
+    }
+    return balance;
+}
+\end{lstlisting}
+Summiert alle Kontost\"ande eines bestimmten Kontotyps. Ignoriert Konten anderen Typs.
+
+\subsection{account\_transfer}
+\begin{lstlisting}
+int account_transfer(Account *from, Account *to, double amount)
+{
+    if (from == NULL || to == NULL || amount <= 0 ||
+        from->balance < amount) return -1;
+    from->balance -= amount;
+    to->balance += amount;
+    return 0;
+}
+\end{lstlisting}
+\"Uberweist einen Betrag atomar von einem Konto auf ein anderes. Pr\"uft Deckung und Validit\"at beider Konten.
+
+\subsection{typedef}
+\begin{lstlisting}
+struct server {
+    // requests per second
+    unsigned int req_per_sec;
+    // utilization of machine (0-100)
+    unsigned int utilization;
+    // geographical location
+    const char* location;
+};
+\end{lstlisting}
+
+\subsection{get\_busiest\_server}
+\begin{lstlisting}
+const struct server *get_busiest_server(const struct server *servers,
+                                        unsigned int count)
+{
+    const struct server *busiest = &servers[0];
+    for (unsigned int i = 1; i < count; i++) {
+        if (servers[i].req_per_sec > busiest->req_per_sec)
+            busiest = &servers[i];
+    }
+    return busiest;
+}
+\end{lstlisting}
+Findet den Server mit den meisten Anfragen pro Sekunde durch lineare Suche. Gibt Zeiger auf den entsprechenden Eintrag zur\"uck.
+
+\subsection{get\_servers\_in\_location}
+\begin{lstlisting}
+struct server *get_servers_in_location(const struct server *servers,
+                                       unsigned int count,
+                                       const char *location)
+{
+    unsigned int match = 0;
+    for (unsigned int i = 0; i < count; i++)
+        if (strcmp(servers[i].location, location) == 0) match++;
+    struct server *subset = malloc(match * sizeof(struct server));
+    unsigned int index = 0;
+    for (unsigned int i = 0; i < count; i++)
+        if (strcmp(servers[i].location, location) == 0)
+            subset[index++] = servers[i];
+    return subset;
+}
+\end{lstlisting}
+Filtert Server nach Standort in zwei Durchl\"aufen: erst Z\"ahlen, dann Kopieren. Der Aufrufer muss das Ergebnis freigeben.
+
+\subsection{filter\_servers\_by\_utilization}
+\begin{lstlisting}
+unsigned int filter_servers_by_utilization(struct server *servers,
+                                           unsigned int count,
+                                           unsigned int max_utilization)
+{
+    unsigned int counter = 0;
+    for (unsigned int i = 0; i < count; i++) {
+        if (servers[i].utilization <= max_utilization)
+            servers[counter++] = servers[i];
+    }
+    return counter;
+}
+\end{lstlisting}
+Filtert Server in-place: Server unter dem Auslastungslimit werden nach vorne kompaktiert. Gibt die neue Anzahl zur\"uck.
+
+\subsection{typedef}
+\begin{lstlisting}
+typedef struct {
+    int id;
+    const char* name;
+    const char* type;
+    float price;
+    unsigned int capacity;
+} event;
+\end{lstlisting}
+
+\subsection{find\_event\_by\_id}
+\begin{lstlisting}
+const event *find_event_by_id(const event *events,
+                               unsigned int size, int id)
+{
+    for (unsigned int i = 0; i < size; i++) {
+        if (events[i].id == id) return &events[i];
+    }
+    return NULL;
+}
+\end{lstlisting}
+Lineare Suche nach einer Veranstaltung anhand ihrer ID. Gibt NULL zur\"uck wenn nicht gefunden.
+
+\subsection{find\_most\_expensive\_event}
+\begin{lstlisting}
+int find_most_expensive_event(const event *events, unsigned int size)
+{
+    if (events == NULL) return -1;
+    int id = events[0].id;
+    float max_price = events[0].price;
+    for (unsigned int i = 0; i < size; i++) {
+        if (events[i].price > max_price) {
+            max_price = events[i].price;
+            id = events[i].id;
+        }
+    }
+    return id;
+}
+\end{lstlisting}
+Gibt die ID der teuersten Veranstaltung zur\"uck. Gibt -1 bei NULL-Eingabe.
+
+\subsection{filter\_events\_by\_type}
+\begin{lstlisting}
+event *filter_events_by_type(const event *events,
+                              unsigned int size, const char *type)
+{
+    unsigned int count = 0;
+    for (unsigned int i = 0; i < size; i++)
+        if (strcmp(events[i].type, type) == 0) count++;
+    event *filtered = malloc(sizeof(event) * count);
+    unsigned int current = 0;
+    for (unsigned int i = 0; i < size; i++)
+        if (strcmp(events[i].type, type) == 0)
+            filtered[current++] = events[i];
+    return filtered;
+}
+\end{lstlisting}
+Filtert Veranstaltungen nach Typ in zwei Durchl\"aufen. Der Aufrufer muss den zur\"uckgegebenen Zeiger freigeben.
+
+\subsection{typedef}
+\begin{lstlisting}
+typedef struct {
+    unsigned int age;
+    char color;
+    char size;
+} note;
+\end{lstlisting}
+
+\subsection{sort\_notes}
+\begin{lstlisting}
+int compare_notes(const void *p1, const void *p2) {
+    const note *n1 = (const note *)p1;
+    const note *n2 = (const note *)p2;
+    if (n1->size != n2->size) return n2->size - n1->size;
+    if (n1->color != n2->color) return n1->color - n2->color;
+    if (n1->age < n2->age) return -1;
+    if (n1->age > n2->age) return 1;
+    return 0;
+}
+
+note *sort_notes(const note *notes, unsigned int length)
+{
+    note *sorted = malloc(sizeof(note) * length);
+    memcpy(sorted, notes, sizeof(note) * length);
+    qsort(sorted, length, sizeof(note), compare_notes);
+    return sorted;
+}
+\end{lstlisting}
+Sortiert Notizzettel nach Gr\"o\ss e (absteigend), Farbe, Alter mit \texttt{qsort}. Gibt eine neu allokierte sortierte Kopie zur\"uck.
+
+\newpage
+% ===========================================================================
+\section{Warehouse / Inventory}
+% ===========================================================================
+
+\subsection{typedef}
+\begin{lstlisting}
+typedef struct {
+    int    id;
+    char   name[64];
+    double price;
+    int    quantity;
+} Product;
+
+typedef struct {
+    Product *products;
+    int      count;
+    int      capacity;
+    int      next_id;
+} Warehouse;
+\end{lstlisting}
+
+\subsection{warehouse\_create}
+\begin{lstlisting}
+Warehouse *warehouse_create(void)
+{
+    Warehouse *w = malloc(sizeof(Warehouse) * 4);
+    if (!w) return NULL;
+    w->products = NULL;
+    w->count = 0;
+    w->capacity = 4;
+    w->next_id = 1;
+    return w;
+}
+\end{lstlisting}
+Allokiert und initialisiert ein neues Warehouse. Startet mit 4 Einheiten Kapazit\"at und ID-Z\"ahler bei 1.
+
+\subsection{warehouse\_destroy}
+\begin{lstlisting}
+void warehouse_destroy(Warehouse *w)
+{
+    if (!w) return;
+    free(w->products);
+    free(w);
+}
+\end{lstlisting}
+Gibt zuerst das Produkt-Array, dann die Warehouse-Struktur selbst frei. Null-Zeiger wird sicher ignoriert.
+
+\subsection{warehouse\_add\_product}
+\begin{lstlisting}
+int warehouse_add_product(Warehouse *w, const char *name,
+                          double price, int quantity)
+{
+    if (!w || !name) return -1;
+    if (w->count >= w->capacity) {
+        int new_cap = w->capacity == 0 ? 4 : w->capacity * 2;
+        Product *tmp = realloc(w->products, new_cap * sizeof(Product));
+        if (!tmp) return -1;
+        w->products = tmp;
+        w->capacity = new_cap;
+    }
+    w->products[w->count].id = w->next_id++;
+    w->products[w->count].price = price;
+    w->products[w->count].quantity = quantity;
+    strncpy(w->products[w->count].name, name, 63);
+    w->products[w->count].name[63] = '\0';
+    w->count++;
+    return 0;
+}
+\end{lstlisting}
+F\"ugt ein Produkt hinzu und verdoppelt bei Bedarf die Kapazit\"at mit \texttt{realloc}. \texttt{strncpy} mit manuellem Null-Terminator verhindert Buffer-Overflow.
+
+\subsection{warehouse\_remove\_by\_id}
+\begin{lstlisting}
+int warehouse_remove_by_id(Warehouse *w, int id)
+{
+    if (!w) return -1;
+    for (int i = 0; i < w->count; i++) {
+        if (w->products[i].id == id) {
+            for (int j = i; j < w->count - 1; j++)
+                w->products[j] = w->products[j + 1];
+            w->count--;
+            return 0;
+        }
+    }
+    return -1;
+}
+\end{lstlisting}
+Sucht linear nach ID, l\"oscht dann durch Linksverschiebung aller nachfolgenden Elemente.
+
+\subsection{warehouse\_find\_by\_name}
+\begin{lstlisting}
+Product *warehouse_find_by_name(Warehouse *w, const char *query)
+{
+    if (!w || !query) return NULL;
+    for (int i = 0; i < w->count; i++)
+        if (strcmp(w->products[i].name, query) == 0)
+            return &w->products[i];
+    return NULL;
+}
+\end{lstlisting}
+Lineare Suche nach Produktname. Gibt Zeiger ins Array zur\"uck (kein Kopieren); NULL wenn nicht gefunden.
+
+\subsection{warehouse\_total\_value}
+\begin{lstlisting}
+double warehouse_total_value(const Warehouse *w)
+{
+    if (!w) return 0.0;
+    double total = 0;
+    for (int i = 0; i < w->count; i++)
+        total += w->products[i].price * w->products[i].quantity;
+    return total;
+}
+\end{lstlisting}
+Berechnet den Gesamtwert aller Produkte als Summe von Preis $\times$ Menge.
+
+\subsection{warehouse\_sort\_by\_price}
+\begin{lstlisting}
+void warehouse_sort_by_price(Warehouse *w)
+{
+    if (!w || w->count <= 1) return;
+    for (int i = 0; i < w->count - 1; i++) {
+        for (int j = 0; j < w->count - i - 1; j++) {
+            if (w->products[j].price > w->products[j+1].price ||
+               (w->products[j].price == w->products[j+1].price &&
+                w->products[j].id    >  w->products[j+1].id)) {
+                Product tmp = w->products[j];
+                w->products[j] = w->products[j+1];
+                w->products[j+1] = tmp;
+            }
+        }
+    }
+}
+\end{lstlisting}
+Bubble Sort nach Preis aufsteigend. Bei Preisgleichheit wird nach ID sortiert (deterministisches Ergebnis).
+
+\subsection{typedef}
+\begin{lstlisting}
+typedef struct {
+    int id;
+    char name[50];
+    char category[20];
+    float price;
+    int quantity;
+} Item;
+\end{lstlisting}
+
+\subsection{find\_lowest\_stock}
+\begin{lstlisting}
+Item *find_lowest_stock(Item *items, int length)
+{
+    Item *lowest = &items[0];
+    for (int i = 1; i < length; i++)
+        if (items[i].quantity < lowest->quantity) lowest = &items[i];
+    return lowest;
+}
+\end{lstlisting}
+Findet das Item mit dem niedrigsten Lagerbestand durch lineare Suche. Gibt Zeiger ins Array zur\"uck.
+
+\subsection{apply\_discount}
+\begin{lstlisting}
+void apply_discount(Item *items, int length,
+                    const char *target_category, float discount_percent)
+{
+    for (int i = 0; i < length; i++) {
+        if (strcmp(items[i].category, target_category) == 0)
+            items[i].price = items[i].price * (1 - discount_percent / 100.0f);
+    }
+}
+\end{lstlisting}
+Wendet einen prozentualen Rabatt in-place auf alle Items einer Kategorie an.
+
+\newpage
+% ===========================================================================
+\section{Matrix}
+% ===========================================================================
+
+\subsection{matrix\_create / create\_matrix}
+\begin{lstlisting}
+int **matrix_create(int rows, int cols)
+{
+    int **matrix = malloc(sizeof(int *) * rows);
+    if (!matrix) return NULL;
+    for (int i = 0; i < rows; i++) {
+        matrix[i] = calloc(cols, sizeof(int));
+        if (matrix[i] == NULL) {
+            for (int j = 0; j < i; j++) free(matrix[j]);
+            free(matrix);
+            return NULL;
+        }
+    }
+    return matrix;
+}
+\end{lstlisting}
+Allokiert eine 2D-Matrix als Array von Zeigern. Bei Allokationsfehler werden bereits allokierte Zeilen sauber freigegeben (Cleanup-Loop).
+
+\subsection{matrix\_free / free\_matrix}
+\begin{lstlisting}
+void matrix_free(int **m, int rows)
+{
+    if (m == NULL) return;
+    for (int i = 0; i < rows; i++) free(m[i]);
+    free(m);
+}
+\end{lstlisting}
+Gibt eine 2D-Matrix korrekt frei: erst alle Zeilen, dann das Zeigerarray.
+
+\subsection{matrix\_scale}
+\begin{lstlisting}
+void matrix_scale(int **m, int rows, int cols, int factor)
+{
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            m[i][j] *= factor;
+}
+\end{lstlisting}
+Multipliziert jedes Element der Matrix in-place mit \texttt{factor}.
+
+\subsection{matrix\_add}
+\begin{lstlisting}
+int **matrix_add(int **a, int **b, int rows, int cols)
+{
+    int **matrix = matrix_create(rows, cols);
+    if (!matrix) return NULL;
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            matrix[i][j] = a[i][j] + b[i][j];
+    return matrix;
+}
+\end{lstlisting}
+Addiert zwei gleichgro\ss e Matrizen elementweise und gibt das Ergebnis als neue Matrix zur\"uck.
+
+\subsection{matrix\_is\_symmetric}
+\begin{lstlisting}
+int matrix_is_symmetric(int **m, int n)
+{
+    if (m == NULL || n <= 0) return 0;
+    for (int i = 0; i < n; i++)
+        for (int j = i + 1; j < n; j++)
+            if (m[i][j] != m[j][i]) return 0;
+    return 1;
+}
+\end{lstlisting}
+Pr\"uft ob eine quadratische Matrix symmetrisch ist ($m[i][j] = m[j][i]$). Nur obere Dreiecksmatrix wird verglichen.
+
+\subsection{matrix\_trace}
+\begin{lstlisting}
+int matrix_trace(int **m, int n)
+{
+    if (m == NULL || n <= 0) return 0;
+    int sum = m[0][0];
+    for (int i = 1; i < n; i++) sum += m[i][i];
+    return sum;
+}
+\end{lstlisting}
+Berechnet die Spur (Trace) einer quadratischen Matrix: Summe der Hauptdiagonalelemente.
+
+\subsection{transpose\_matrix}
+\begin{lstlisting}
+int **transpose_matrix(int **matrix, int rows, int cols)
+{
+    int **t = create_matrix(cols, rows);
+    if (!t) return NULL;
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            t[j][i] = matrix[i][j];
+    return t;
+}
+\end{lstlisting}
+Transponiert eine Matrix: Element \texttt{[i][j]} wird zu \texttt{[j][i]}. Gibt eine neu allokierte transponierte Matrix zur\"uck.
+
+\newpage
+% ===========================================================================
+\section{Statistik}
+% ===========================================================================
+
+\subsection{min\_cycles}
+\begin{lstlisting}
+float min_cycles(const float *measurements, unsigned int count)
+{
+    if (measurements == NULL || count == 0) return 0;
+    float temp = measurements[0];
+    for (unsigned int i = 1; i < count; i++)
+        if (measurements[i] < temp) temp = measurements[i];
+    return temp;
+}
+\end{lstlisting}
+Sucht das Minimum eines Float-Arrays durch lineares Durchlaufen.
+
+\subsection{max\_cycles}
+\begin{lstlisting}
+float max_cycles(const float *measurements, unsigned int count)
+{
+    if (measurements == NULL || count == 0) return 0;
+    float temp = measurements[0];
+    for (unsigned int i = 1; i < count; i++)
+        if (measurements[i] > temp) temp = measurements[i];
+    return temp;
+}
+\end{lstlisting}
+Sucht das Maximum eines Float-Arrays durch lineares Durchlaufen.
+
+\subsection{average\_cycles}
+\begin{lstlisting}
+float average_cycles(const float *measurements, unsigned int count)
+{
+    if (measurements == NULL || count == 0) return 0;
+    float sum = measurements[0];
+    for (unsigned int i = 1; i < count; i++) sum += measurements[i];
+    return sum / (float)count;
+}
+\end{lstlisting}
+Berechnet den Mittelwert eines Float-Arrays.
+
+\subsection{standard\_deviation}
+\begin{lstlisting}
+float standard_deviation(const float *measurements, unsigned int count)
+{
+    if (measurements == NULL || count == 0) return 0;
+    float avg = average_cycles(measurements, count);
+    float s = 0;
+    for (unsigned int i = 0; i < count; i++)
+        s += powf(measurements[i] - avg, 2);
+    float variance = s / (float)count;
+    return sqrtf(variance);
+}
+\end{lstlisting}
+Berechnet die Standardabweichung: Varianz ist der mittlere quadratische Abstand vom Mittelwert, Standardabweichung ist deren Wurzel.
+
+\subsection{convert\_to\_time}
+\begin{lstlisting}
+float *convert_to_time(const float *measurements, unsigned int count,
+                       float cycle_time)
+{
+    if (count == 0 || measurements == NULL) return NULL;
+    float *arr = malloc(count * sizeof(float));
+    if (!arr) return NULL;
+    for (unsigned int i = 0; i < count; i++)
+        arr[i] = measurements[i] * cycle_time;
+    return arr;
+}
+\end{lstlisting}
+Multipliziert jede Messung mit der Zykluszeit um von Taktzyklen in Zeiteinheiten umzurechnen. Der Aufrufer muss freigeben.
+
+\newpage
+% ===========================================================================
+\section{Profiler}
+% ===========================================================================
+
+\subsection{typedef}
+\begin{lstlisting}
+typedef struct {
+    // name of the function
+    const char* func_name;
+    // how many times it was called
+    unsigned int call_count;
+    // how much time was spent execution all of the calls combined
+    unsigned int total_cpu_time;
+} function_entry;
+
+typedef struct {
+    // array containing an entry for each unique func_name (no duplicates)
+    function_entry* entries;
+    // number of elements currently stored in entries
+    unsigned int count;
+    // number of elements the entries array can hold
+    unsigned int capacity;
+} function_profiler;
+\end{lstlisting}
+
+\subsection{create\_profiler}
+\begin{lstlisting}
+function_profiler create_profiler(unsigned int capacity)
+{
+    function_profiler ret = {0};
+    ret.entries = malloc(capacity * sizeof(function_entry));
+    if (ret.entries == NULL) return ret;
+    ret.capacity = capacity;
+    ret.count = 0;
+    return ret;
+}
+\end{lstlisting}
+Erstellt einen Profiler mit vorgegebener Kapazit\"at. Bei Allokationsfehler wird ein leerer (aber sicherer) Profiler zur\"uckgegeben.
+
+\subsection{add\_function\_call}
+\begin{lstlisting}
+void add_function_call(function_profiler *profiler,
+                       const char *func_name, unsigned int cpu_time)
+{
+    for (unsigned int i = 0; i < profiler->count; i++) {
+        if (strcmp(profiler->entries[i].func_name, func_name) == 0) {
+            profiler->entries[i].call_count++;
+            profiler->entries[i].total_cpu_time += cpu_time;
+            return;
+        }
+    }
+    function_entry *entry = &profiler->entries[profiler->count];
+    entry->func_name = func_name;
+    entry->call_count = 1;
+    entry->total_cpu_time = cpu_time;
+    profiler->count++;
+}
+\end{lstlisting}
+Registriert einen Funktionsaufruf: bei bekanntem Namen werden Aufrufz\"ahler und CPU-Zeit akkumuliert, bei neuem Namen wird ein Eintrag angelegt.
+
+\subsection{sort\_entries}
+\begin{lstlisting}
+static int compare_entries(const void *a, const void *b)
+{
+    const function_entry *ea = (const function_entry *)a;
+    const function_entry *eb = (const function_entry *)b;
+    if (ea->total_cpu_time < eb->total_cpu_time) return  1;
+    if (ea->total_cpu_time > eb->total_cpu_time) return -1;
+    return 0;
+}
+
+void sort_entries(function_profiler *profiler)
+{
+    qsort(profiler->entries, profiler->count,
+          sizeof(function_entry), compare_entries);
+}
+\end{lstlisting}
+Sortiert die Profiler-Eintr\"age absteigend nach gesamter CPU-Zeit mit \texttt{qsort}.
+
+\subsection{destroy\_profiler}
+\begin{lstlisting}
+void destroy_profiler(function_profiler *profiler)
+{
+    free(profiler->entries);
+    profiler->entries = NULL;
+    profiler->capacity = 0;
+    profiler->count = 0;
+}
+\end{lstlisting}
+Gibt den Eintrags-Puffer frei und setzt alle Felder auf null (defensiv gegen Use-after-free).
+
+\newpage
+% ===========================================================================
+\section{Einfach verkettete Liste (Singly Linked List)}
+% ===========================================================================
+
+\subsection{typedef}
+\begin{lstlisting}
+/*
+ * Knoten der verketteten Liste.
+ *
+ * Felder:
+ *   value  - gespeicherter Integer-Wert
+ *   next   - Zeiger auf nachfolgenden Knoten (NULL wenn letzter)
+ *
+ * Hinweis: Selbstreferenz erfordert 'struct SNode' in der Definition.
+ */
+typedef struct SNode {
+    int          value;
+    struct SNode *next;
+} SNode;
+
+/*
+ * Verwaltungsstruktur der Liste.
+ *
+ * Felder:
+ *   head  - Zeiger auf ersten Knoten (NULL wenn leer)
+ *   tail  - Zeiger auf letzten Knoten (NULL wenn leer)
+ *           (tail ermoeglicht O(1) push_back)
+ *   size  - Anzahl Knoten in der Liste
+ */
+typedef struct {
+    SNode *head;
+    SNode *tail;
+    int    size;
+} SList;
+\end{lstlisting}
+
+\subsection{slist\_create}
+\begin{lstlisting}
+SList *slist_create(void)
+{
+    SList *new_list = malloc(sizeof(SList));
+    if (!new_list) return NULL;
+    new_list->head = NULL;
+    new_list->tail = NULL;
+    new_list->size = 0;
+    return new_list;
+}
+\end{lstlisting}
+Allokiert und initialisiert eine leere einfach verkettete Liste. Tail-Pointer erm\"oglicht O(1) Anh\"angen.
+
+\subsection{slist\_destroy}
+\begin{lstlisting}
+void slist_destroy(SList *list)
+{
+    if (list == NULL) return;
+    SNode *current = list->head;
+    while (current != NULL) {
+        SNode *next_node = current->next;
+        free(current);
+        current = next_node;
+    }
+    free(list);
+}
+\end{lstlisting}
+Gibt alle Knoten und dann die Listenstruktur frei. Wichtig: \texttt{next}-Pointer vor \texttt{free} sichern!
+
+\subsection{slist\_push\_front}
+\begin{lstlisting}
+int slist_push_front(SList *list, int value)
+{
+    if (list == NULL) return -1;
+    SNode *new_node = malloc(sizeof(SNode));
+    if (new_node == NULL) return -1;
+    new_node->value = value;
+    new_node->next = list->head;
+    list->head = new_node;
+    if (list->size == 0) list->tail = new_node;
+    list->size++;
+    return 0;
+}
+\end{lstlisting}
+F\"ugt einen Wert am Anfang der Liste ein (O(1)). Bei leerer Liste wird auch der Tail-Pointer gesetzt.
+
+\subsection{slist\_push\_back}
+\begin{lstlisting}
+int slist_push_back(SList *list, int value)
+{
+    if (list == NULL) return -1;
+    SNode *new_node = malloc(sizeof(SNode));
+    if (new_node == NULL) return -1;
+    new_node->value = value;
+    new_node->next = NULL;
+    if (list->size == 0) {
+        list->head = new_node;
+        list->tail = new_node;
+    } else {
+        list->tail->next = new_node;
+        list->tail = new_node;
+    }
+    list->size++;
+    return 0;
+}
+\end{lstlisting}
+H\"angt einen Wert ans Ende der Liste an (O(1) dank Tail-Pointer). Bei leerer Liste werden Head und Tail gesetzt.
+
+\subsection{slist\_pop\_front}
+\begin{lstlisting}
+int slist_pop_front(SList *list, int *err)
+{
+    if (list == NULL || list->size == 0) {
+        if (err != NULL) *err = -1;
+        return 0;
+    }
+    SNode *remove = list->head;
+    int return_value = remove->value;
+    list->head = remove->next;
+    list->size--;
+    if (list->size == 0) list->tail = NULL;
+    free(remove);
+    if (err != NULL) *err = 0;
+    return return_value;
+}
+\end{lstlisting}
+Entfernt und gibt den ersten Wert zur\"uck. Output-Parameter \texttt{err} signalisiert Fehler, da C keinen zweiten R\"uckgabewert kennt.
+
+\subsection{slist\_remove\_at}
+\begin{lstlisting}
+int slist_remove_at(SList *list, int index)
+{
+    if (list == NULL || index < 0 || index >= list->size) return -1;
+    if (index == 0) {
+        SNode *node_to_remove = list->head;
+        list->head = node_to_remove->next;
+        list->size--;
+        if (list->size == 0) list->tail = NULL;
+        free(node_to_remove);
+        return 0;
+    }
+    SNode *prev = list->head;
+    for (int i = 0; i < index - 1; i++) prev = prev->next;
+    SNode *node_to_remove = prev->next;
+    prev->next = node_to_remove->next;
+    if (node_to_remove == list->tail) list->tail = prev;
+    list->size--;
+    free(node_to_remove);
+    return 0;
+}
+\end{lstlisting}
+L\"oscht Knoten an Position \texttt{index}. Index 0 ist Sonderfall (kein Vorg\"anger); Tail wird aktualisiert wenn letztes Element gel\"oscht wird.
+
+\subsection{slist\_insertion\_sort}
+\begin{lstlisting}
+void slist_insertion_sort(SList *list)
+{
+    if (list == NULL || list->size <= 1) return;
+    SNode *sorted_head = NULL, *sorted_tail = NULL;
+    SNode *current = list->head;
+    while (current != NULL) {
+        SNode *next_node = current->next;
+        if (sorted_head == NULL || current->value <= sorted_head->value) {
+            current->next = sorted_head;
+            sorted_head = current;
+            if (sorted_tail == NULL) sorted_tail = current;
+        } else {
+            SNode *search = sorted_head;
+            while (search->next != NULL &&
+                   search->next->value < current->value)
+                search = search->next;
+            current->next = search->next;
+            search->next = current;
+            if (current->next == NULL) sorted_tail = current;
+        }
+        current = next_node;
+    }
+    list->head = sorted_head;
+    list->tail = sorted_tail;
+}
+\end{lstlisting}
+Sortiert die Liste in-place ohne neue Speicherzuteilung; Knoten werden direkt umgeh\"angt. O($n^2$) im Worst Case.
+
+\subsection{slist\_reverse}
+\begin{lstlisting}
+void slist_reverse(SList *list)
+{
+    if (list == NULL || list->size <= 1) return;
+    SNode *prev = NULL;
+    SNode *current = list->head;
+    SNode *next = NULL;
+    list->tail = list->head;
+    while (current != NULL) {
+        next = current->next;
+        current->next = prev;
+        prev = current;
+        current = next;
+    }
+    list->head = prev;
+}
+\end{lstlisting}
+Kehrt die Liste in-place mit drei Zeigern um (O(n), O(1) Speicher). Alter Head wird zum neuen Tail.
+
+\subsection{slist\_to\_array}
+\begin{lstlisting}
+int *slist_to_array(const SList *list)
+{
+    if (list == NULL || list->size == 0) return NULL;
+    int *array = malloc(list->size * sizeof(int));
+    if (array == NULL) return NULL;
+    SNode *current = list->head;
+    for (int i = 0; i < list->size; i++) {
+        array[i] = current->value;
+        current = current->next;
+    }
+    return array;
+}
+\end{lstlisting}
+Kopiert alle Listenelemente in ein neu allokiertes Array. Der Aufrufer muss das Array mit \texttt{free()} freigeben.
+
+\subsection{list\_append (einfache Variante)}
+\begin{lstlisting}
+void list_append(Node **head, int value)
+{
+    if (head == NULL) return;
+    Node *new_node = malloc(sizeof(Node));
+    if (new_node == NULL) return;
+    new_node->data = value;
+    new_node->next = NULL;
+    if (*head == NULL) { *head = new_node; return; }
+    Node *curr = *head;
+    while (curr->next != NULL) curr = curr->next;
+    curr->next = new_node;
+}
+\end{lstlisting}
+H\"angt einen Wert ans Ende einer einfachen Liste an (kein Tail-Pointer, daher O(n)).
+
+\subsection{list\_free}
+\begin{lstlisting}
+void list_free(Node **head)
+{
+    if (head == NULL) return;
+    Node *curr = *head;
+    while (curr != NULL) {
+        Node *next = curr->next;
+        free(curr);
+        curr = next;
+    }
+    *head = NULL;
+}
+\end{lstlisting}
+Gibt alle Knoten frei und setzt den Head-Zeiger auf NULL. Doppelzeiger verhindert Dangling Pointer.
+
+\subsection{list\_sum}
+\begin{lstlisting}
+int list_sum(const Node *head)
+{
+    int sum = 0;
+    const Node *curr = head;
+    while (curr != NULL) { sum += curr->data; curr = curr->next; }
+    return sum;
+}
+\end{lstlisting}
+Summiert alle Werte der Liste in einem einzigen Durchlauf.
+
+\subsection{list\_remove\_duplicates}
+\begin{lstlisting}
+void list_remove_duplicates(Node **head)
+{
+    if (head == NULL || *head == NULL) return;
+    Node *curr = *head;
+    while (curr != NULL) {
+        Node *runner = curr;
+        while (runner->next != NULL) {
+            if (runner->next->data == curr->data) {
+                Node *duplicate = runner->next;
+                runner->next = runner->next->next;
+                free(duplicate);
+            } else {
+                runner = runner->next;
+            }
+        }
+        curr = curr->next;
+    }
+}
+\end{lstlisting}
+Entfernt alle Duplikate mit einem \"au\ss eren und einem inneren Zeiger (Runner-Technik). O($n^2$), ben\"otigt keinen zus\"atzlichen Speicher.
+
+\subsection{list\_is\_sorted}
+\begin{lstlisting}
+int list_is_sorted(const Node *head)
+{
+    if (head == NULL || head->next == NULL) return 1;
+    const Node *curr = head;
+    while (curr->next != NULL) {
+        if (curr->data > curr->next->data) return 0;
+        curr = curr->next;
+    }
+    return 1;
+}
+\end{lstlisting}
+Pr\"uft ob die Liste aufsteigend sortiert ist. Gibt sofort 0 zur\"uck beim ersten Verstoß.
+
+\subsection{list\_insert\_sorted}
+\begin{lstlisting}
+void list_insert_sorted(Node **head, int value)
+{
+    if (head == NULL) return;
+    Node *new_node = malloc(sizeof(Node));
+    if (new_node == NULL) return;
+    new_node->data = value;
+    if (*head == NULL || (*head)->data >= value) {
+        new_node->next = *head;
+        *head = new_node;
+        return;
+    }
+    Node *curr = *head;
+    while (curr->next != NULL && curr->next->data < value)
+        curr = curr->next;
+    new_node->next = curr->next;
+    curr->next = new_node;
+}
+\end{lstlisting}
+F\"ugt einen Wert an der richtigen Position in eine bereits sortierte Liste ein. Einf\"ugen am Kopf ist Sonderfall.
+
+\subsection{list\_filter\_even}
+\begin{lstlisting}
+void list_filter_even(Node **head_ref)
+{
+    Node *current = *head_ref;
+    while (current != NULL && current->next != NULL) {
+        if (current->next->data % 2 == 0) {
+            Node *del = current->next;
+            current->next = del->next;
+            free(del);
+        } else {
+            current = current->next;
+        }
+    }
+}
+\end{lstlisting}
+Entfernt alle geraden Werte aus der Liste (\"uber den Nachfolger). Achtung: der Head wird nicht gepr\"uft!
+
+\newpage
+% ===========================================================================
+\section{Doppelt verkettete Liste (Doubly Linked List)}
+% ===========================================================================
+
+\subsection{typedef}
+\begin{lstlisting}
+typedef struct DNode {
+    int          data;
+    struct DNode *next;
+    struct DNode *prev;
+} DNode;
+
+typedef struct {
+    DNode *head;
+    DNode *tail;
+    int    size;
+} DList;
+\end{lstlisting}
+
+\subsection{dlist\_create}
+\begin{lstlisting}
+DList *dlist_create(void)
+{
+    DList *l = malloc(sizeof(DList));
+    if (!l) return NULL;
+    l->head = NULL;
+    l->tail = NULL;
+    l->size = 0;
+    return l;
+}
+\end{lstlisting}
+Allokiert und initialisiert eine leere doppelt verkettete Liste mit Head- und Tail-Zeiger.
+
+\subsection{dlist\_destroy}
+\begin{lstlisting}
+void dlist_destroy(DList *list)
+{
+    if (!list) return;
+    DNode *cur = list->head;
+    while (cur) {
+        DNode *nxt = cur->next;
+        free(cur);
+        cur = nxt;
+    }
+    free(list);
+}
+\end{lstlisting}
+Gibt alle Knoten von vorne nach hinten und anschlie\ss end die Listenstruktur frei.
+
+\subsection{dlist\_push\_front}
+\begin{lstlisting}
+int dlist_push_front(DList *list, int value)
+{
+    if (list == NULL) return -1;
+    DNode *new_node = malloc(sizeof(DNode));
+    if (new_node == NULL) return -1;
+    new_node->data = value;
+    new_node->next = list->head;
+    new_node->prev = NULL;
+    if (list->head != NULL) list->head->prev = new_node;
+    list->head = new_node;
+    if (list->size == 0) list->tail = new_node;
+    list->size++;
+    return 0;
+}
+\end{lstlisting}
+F\"ugt am Kopf ein und setzt alle vier Zeigerketten korrekt (prev/next des neuen Knotens und prev des alten Heads).
+
+\subsection{dlist\_push\_back}
+\begin{lstlisting}
+int dlist_push_back(DList *list, int value)
+{
+    if (list == NULL) return -1;
+    DNode *new_node = malloc(sizeof(DNode));
+    if (new_node == NULL) return -1;
+    new_node->data = value;
+    new_node->next = NULL;
+    new_node->prev = NULL;
+    if (list->size == 0) {
+        list->head = new_node;
+        list->tail = new_node;
+    } else {
+        new_node->prev = list->tail;
+        list->tail->next = new_node;
+        list->tail = new_node;
+    }
+    list->size++;
+    return 0;
+}
+\end{lstlisting}
+H\"angt am Ende an und aktualisiert Tail-Zeiger sowie den Prev-Zeiger des neuen Knotens.
+
+\subsection{dlist\_pop\_back}
+\begin{lstlisting}
+int dlist_pop_back(DList *list, int *err)
+{
+    if (list == NULL || list->size == 0 || list->tail == NULL) {
+        if (err != NULL) *err = -1;
+        return 0;
+    }
+    if (err != NULL) *err = 0;
+    DNode *to_remove = list->tail;
+    int value = to_remove->data;
+    list->tail = to_remove->prev;
+    if (list->tail != NULL) list->tail->next = NULL;
+    else                    list->head = NULL;
+    list->size--;
+    free(to_remove);
+    return value;
+}
+\end{lstlisting}
+Entfernt den letzten Knoten in O(1) dank Tail-Zeiger. Wenn die Liste dadurch leer wird, muss auch Head auf NULL gesetzt werden.
+
+\subsection{dlist\_is\_consistent}
+\begin{lstlisting}
+int dlist_is_consistent(const DList *list)
+{
+    if (list == NULL) return 1;
+    if (list->size == 0)
+        return (list->head == NULL && list->tail == NULL) ? 1 : 0;
+    if (list->head == NULL || list->tail == NULL) return 0;
+    if (list->head->prev != NULL) return 0;
+    if (list->tail->next != NULL) return 0;
+    const DNode *curr = list->head;
+    int count = 0;
+    while (curr != NULL) {
+        count++;
+        if (curr->next != NULL && curr->next->prev != curr) return 0;
+        if (curr->next == NULL && curr != list->tail) return 0;
+        curr = curr->next;
+    }
+    return (count == list->size) ? 1 : 0;
+}
+\end{lstlisting}
+Validiert alle Invarianten der doppelt verketteten Liste (Zeigerkonsistenz, Gr\"o\ss e, prev/next-Verkettung). N\"utzlich f\"ur Debugging.
+
+\newpage
+% ===========================================================================
+\section{Stack}
+% ===========================================================================
+
+\subsection{typedef}
+\begin{lstlisting}
+typedef struct {
+    int *data;       /* dynamisches Array */
+    int  size;       /* aktuelle Anzahl Elemente */
+    int  capacity;   /* aktuell allokierte Kapazitaet */
+} Stack;
+\end{lstlisting}
+
+\subsection{stack\_create}
+\begin{lstlisting}
+Stack *stack_create(void)
+{
+    Stack *s = malloc(sizeof(Stack));
+    if (s == NULL) return NULL;
+    s->data = malloc(4 * sizeof(int));
+    if (s->data == NULL) { free(s); return NULL; }
+    s->size = 0;
+    s->capacity = 4;
+    return s;
+}
+\end{lstlisting}
+Erstellt einen dynamischen Stack (als Array) mit initialer Kapazit\"at 4. Bei Allokationsfehler des Datenarrays wird \texttt{s} sauber freigegeben.
+
+\subsection{stack\_destroy}
+\begin{lstlisting}
+void stack_destroy(Stack *s)
+{
+    if (s == NULL) return;
+    if (s->data != NULL) free(s->data);
+    free(s);
+}
+\end{lstlisting}
+Gibt Daten-Array und Stack-Struktur frei. Null-Zeiger wird sicher ignoriert.
+
+\subsection{stack\_push}
+\begin{lstlisting}
+int stack_push(Stack *s, int value)
+{
+    if (s == NULL) return -1;
+    if (s->size == s->capacity) {
+        int new_capacity = (s->capacity == 0) ? 4 : s->capacity * 2;
+        int *new_data = realloc(s->data, new_capacity * sizeof(int));
+        if (new_data == NULL) return -1;
+        s->data = new_data;
+        s->capacity = new_capacity;
+    }
+    s->data[s->size] = value;
+    s->size++;
+    return 0;
+}
+\end{lstlisting}
+Schiebt einen Wert auf den Stack. Bei voller Kapazit\"at wird mit \texttt{realloc} auf doppelte Gr\"o\ss e vergr\"o\ss ert.
+
+\subsection{stack\_pop}
+\begin{lstlisting}
+int stack_pop(Stack *s, int *err)
+{
+    if (s == NULL || s->size == 0) {
+        if (err != NULL) *err = -1;
+        return 0;
+    }
+    if (err != NULL) *err = 0;
+    s->size--;
+    return s->data[s->size];
+}
+\end{lstlisting}
+Entnimmt das oberste Element (LIFO). Output-Parameter \texttt{err} signalisiert Underflow.
+
+\subsection{stack\_peek}
+\begin{lstlisting}
+int stack_peek(const Stack *s, int *err)
+{
+    if (s == NULL || s->size == 0) {
+        if (err != NULL) *err = -1;
+        return 0;
+    }
+    if (err != NULL) *err = 0;
+    return s->data[s->size - 1];
+}
+\end{lstlisting}
+Liest das oberste Element ohne es zu entfernen (kein Gr\"o\ss en\"anderung).
+
+\subsection{stack\_is\_empty}
+\begin{lstlisting}
+int stack_is_empty(const Stack *s)
+{
+    if (s == NULL || s->size == 0) return 1;
+    return 0;
+}
+\end{lstlisting}
+Gibt 1 zur\"uck wenn der Stack leer oder NULL ist, sonst 0.
+
+\newpage
+% ===========================================================================
+\section{Queue (Warteschlange)}
+% ===========================================================================
+
+\subsection{typedef}
+\begin{lstlisting}
+typedef struct
+{
+    int *data;    /* dynamisches Array                  */
+    int front;    /* Index des ersten Elements           */
+    int back;     /* Index hinter dem letzten Element    */
+    int size;     /* aktuelle Anzahl Elemente            */
+    int capacity; /* aktuell allokierte Kapazitaet       */
+} Queue;
+\end{lstlisting}
+
+\subsection{queue\_create}
+\begin{lstlisting}
+Queue *queue_create(void)
+{
+    Queue *new_queue = malloc(sizeof(Queue));
+    if (!new_queue) return NULL;
+    new_queue->data = malloc(4 * sizeof(int));
+    if (new_queue->data == NULL) { free(new_queue); return NULL; }
+    new_queue->back = 0;
+    new_queue->front = 0;
+    new_queue->size = 0;
+    new_queue->capacity = 4;
+    return new_queue;
+}
+\end{lstlisting}
+Erstellt eine Queue als zyklisches Array mit initialer Kapazit\"at 4. Front und Back zeigen auf Index 0.
+
+\subsection{queue\_destroy}
+\begin{lstlisting}
+void queue_destroy(Queue *q)
+{
+    if (q == NULL) return;
+    if (q->data != NULL) free(q->data);
+    free(q);
+}
+\end{lstlisting}
+Gibt den Datenpuffer und die Queue-Struktur frei.
+
+\subsection{queue\_enqueue}
+\begin{lstlisting}
+int queue_enqueue(Queue *q, int value)
+{
+    if (q == NULL) return -1;
+    if (q->size == q->capacity) {
+        int new_capacity = (q->capacity == 0) ? 4 : q->capacity * 2;
+        int *new_data = malloc(new_capacity * sizeof(int));
+        if (new_data == NULL) return -1;
+        for (int i = 0; i < q->size; i++)
+            new_data[i] = q->data[(q->front + i) % q->capacity];
+        free(q->data);
+        q->data = new_data;
+        q->front = 0;
+        q->back = q->size;
+        q->capacity = new_capacity;
+    }
+    q->data[q->back] = value;
+    q->back = (q->back + 1) % q->capacity;
+    q->size++;
+    return 0;
+}
+\end{lstlisting}
+F\"ugt am Ende der Queue ein. Bei Kapazit\"ats\"uberschreitung: neues Array allokieren und Daten linearisieren (zyklische Reihenfolge aufl\"osen).
+
+\subsection{queue\_dequeue}
+\begin{lstlisting}
+int queue_dequeue(Queue *q, int *err)
+{
+    if (q == NULL || q->size == 0) {
+        if (err != NULL) *err = -1;
+        return 0;
+    }
+    int value = q->data[q->front];
+    q->front = (q->front + 1) % q->capacity;
+    q->size--;
+    if (err != NULL) *err = 0;
+    return value;
+}
+\end{lstlisting}
+Entnimmt das vorderste Element (FIFO) mit zyklischer Indexarithmetik.
+
+\subsection{queue\_peek}
+\begin{lstlisting}
+int queue_peek(const Queue *q, int *err)
+{
+    if (q == NULL || q->size == 0) {
+        if (err != NULL) *err = -1;
+        return 0;
+    }
+    if (err != NULL) *err = 0;
+    return q->data[q->front];
+}
+\end{lstlisting}
+Liest das vorderste Element ohne Entnahme.
+
+\subsection{queue\_is\_empty}
+\begin{lstlisting}
+int queue_is_empty(const Queue *q)
+{
+    if (q == NULL) return 1;
+    return q->size == 0;
+}
+\end{lstlisting}
+Gibt 1 zur\"uck wenn die Queue leer oder NULL ist.
+
+\subsection{queue\_size}
+\begin{lstlisting}
+int queue_size(const Queue *q)
+{
+    if (q == NULL) return 0;
+    return q->size;
+}
+\end{lstlisting}
+Gibt die aktuelle Anzahl der Elemente in der Queue zur\"uck.
+
+\newpage
+% ===========================================================================
+\section{Dynamisches Array}
+% ===========================================================================
+
+\subsection{typedef}
+\begin{lstlisting}
+typedef struct {
+    double *data;     /* dynamisches Array                */
+    int     size;     /* aktuelle Anzahl Elemente         */
+    int     capacity; /* aktuell allokierte Kapazitaet    */
+} DynArray;
+\end{lstlisting}
+
+\subsection{da\_create}
+\begin{lstlisting}
+DynArray *da_create(void)
+{
+    DynArray *a = malloc(sizeof(DynArray));
+    if (!a) return NULL;
+    a->data = malloc(4 * sizeof(double));
+    if (!a->data) { free(a); return NULL; }
+    a->size = 0;
+    a->capacity = 4;
+    return a;
+}
+\end{lstlisting}
+Erstellt ein dynamisches Array f\"ur \texttt{double}-Werte mit Startkapazit\"at 4.
+
+\subsection{da\_destroy}
+\begin{lstlisting}
+void da_destroy(DynArray *a)
+{
+    if (a) {
+        if (a->data) free(a->data);
+        free(a);
+    }
+}
+\end{lstlisting}
+Gibt Datenpuffer und Array-Struktur frei.
+
+\subsection{da\_push}
+\begin{lstlisting}
+int da_push(DynArray *a, double value)
+{
+    if (!a) return -1;
+    if (a->size == a->capacity) {
+        int new_capacity = (a->capacity == 0) ? 4 : a->capacity * 2;
+        double *new_data = realloc(a->data, new_capacity * sizeof(double));
+        if (!new_data) return -1;
+        a->data = new_data;
+        a->capacity = new_capacity;
+    }
+    a->data[a->size] = value;
+    a->size++;
+    return 0;
+}
+\end{lstlisting}
+F\"ugt einen Wert ans Ende an und verdoppelt bei Bedarf die Kapazit\"at mit \texttt{realloc}.
+
+\subsection{da\_get}
+\begin{lstlisting}
+double da_get(const DynArray *a, int index, int *err)
+{
+    if (!a || index < 0 || index >= a->size) {
+        if (err) *err = -1;
+        return 0.0;
+    }
+    if (err) *err = 0;
+    return a->data[index];
+}
+\end{lstlisting}
+Gibt Element an Index mit Bereichspr\"ufung zur\"uck. Fehler wird \"uber Output-Parameter \texttt{err} signalisiert.
+
+\subsection{da\_remove\_at}
+\begin{lstlisting}
+int da_remove_at(DynArray *a, int index)
+{
+    if (!a || index < 0 || index >= a->size) return -1;
+    for (int i = index; i < a->size - 1; i++)
+        a->data[i] = a->data[i + 1];
+    a->size--;
+    return 0;
+}
+\end{lstlisting}
+L\"oscht Element an Position durch Linksverschiebung aller Nachfolger.
+
+\subsection{da\_min}
+\begin{lstlisting}
+double da_min(const DynArray *a, int *err)
+{
+    if (!a || a->size == 0) { if (err) *err = -1; return 0.0; }
+    double min_val = a->data[0];
+    for (int i = 1; i < a->size; i++)
+        if (a->data[i] < min_val) min_val = a->data[i];
+    if (err) *err = 0;
+    return min_val;
+}
+\end{lstlisting}
+Findet das Minimum im dynamischen Array durch lineares Durchlaufen.
+
+\subsection{da\_max}
+\begin{lstlisting}
+double da_max(const DynArray *a, int *err)
+{
+    if (!a || a->size == 0) { if (err) *err = -1; return 0.0; }
+    double max_val = a->data[0];
+    for (int i = 1; i < a->size; i++)
+        if (a->data[i] > max_val) max_val = a->data[i];
+    if (err) *err = 0;
+    return max_val;
+}
+\end{lstlisting}
+Findet das Maximum im dynamischen Array durch lineares Durchlaufen.
+
+\subsection{da\_mean}
+\begin{lstlisting}
+double da_mean(const DynArray *a, int *err)
+{
+    if (!a || a->size == 0) { if (err) *err = -1; return 0.0; }
+    double sum = 0.0;
+    for (int i = 0; i < a->size; i++) sum += a->data[i];
+    if (err) *err = 0;
+    return sum / a->size;
+}
+\end{lstlisting}
+Berechnet den Mittelwert aller Elemente im dynamischen Array.
+
+\subsection{da\_sort}
+\begin{lstlisting}
+static int compare_doubles(const void *p1, const void *p2)
+{
+    double d1 = *(const double *)p1;
+    double d2 = *(const double *)p2;
+    if (d1 < d2) return -1;
+    if (d1 > d2) return  1;
+    return 0;
+}
+
+void da_sort(DynArray *a)
+{
+    if (!a || a->size <= 1) return;
+    qsort(a->data, a->size, sizeof(double), compare_doubles);
+}
+\end{lstlisting}
+Sortiert das Array aufsteigend mit \texttt{qsort}. Die Vergleichsfunktion muss explizit \"uber Zeiger arbeiten da \texttt{qsort} \texttt{void*} erwartet.
+
+\newpage
+% ===========================================================================
+\section{File I/O}
+% ===========================================================================
+
+\subsection{count\_lines}
+\begin{lstlisting}
+int count_lines(const char *filename)
+{
+    if (filename == NULL) return -1;
+    FILE *file = fopen(filename, "r");
+    if (!file) return -1;
+    int count = 0;
+    int ch;
+    int last_char = EOF;
+    while ((ch = fgetc(file)) != EOF) {
+        if (ch == '\n') count++;
+        last_char = ch;
+    }
+    if (last_char != EOF && last_char != '\n') count++;
+    fclose(file);
+    return count;
+}
+\end{lstlisting}
+Z\"ahlt Zeilen in einer Datei zeichenweise. Letzte Zeile ohne abschlie\ss endes \texttt{\textbackslash n} wird durch Sonderfall korrekt gez\"ahlt.
+
+\subsection{read\_ints\_from\_file}
+\begin{lstlisting}
+int read_ints_from_file(const char *filename, int *out, int max_count)
+{
+    if (filename == NULL || out == NULL || max_count <= 0) return -1;
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) return -1;
+    int count = 0;
+    char buffer[256];
+    while (count < max_count && fgets(buffer, sizeof(buffer), file)) {
+        int value;
+        if (sscanf(buffer, "%d", &value) == 1) {
+            out[count] = value;
+            count++;
+        }
+    }
+    fclose(file);
+    return count;
+}
+\end{lstlisting}
+Liest Integers zeilenweise aus einer Datei in ein Array. Nicht-Integer-Zeilen werden \"ubersprungen; gibt Anzahl gelesener Werte zur\"uck.
+
+\subsection{file\_max}
+\begin{lstlisting}
+int file_max(const char *filename, int *out_max)
+{
+    if (filename == NULL || out_max == NULL) return -1;
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) return -1;
+    int max_val, found_any = 0;
+    char buffer[256];
+    while (fgets(buffer, sizeof(buffer), file)) {
+        int val;
+        if (sscanf(buffer, "%d", &val) == 1) {
+            if (!found_any) { max_val = val; found_any = 1; }
+            else if (val > max_val) max_val = val;
+        }
+    }
+    fclose(file);
+    if (!found_any) return -1;
+    *out_max = max_val;
+    return 0;
+}
+\end{lstlisting}
+Findet den gr\"o\ss ten Integer in einer Datei. Gibt -1 wenn keine Zahlen gefunden wurden, sonst 0 und Ergebnis \"uber \texttt{out\_max}.
+
+\subsection{write\_squares}
+\begin{lstlisting}
+int write_squares(const char *filename, int n)
+{
+    if (filename == NULL || n <= 0) return -1;
+    FILE *file = fopen(filename, "w");
+    if (file == NULL) return -1;
+    for (int i = 1; i <= n; i++) fprintf(file, "%d\n", i * i);
+    fclose(file);
+    return 0;
+}
+\end{lstlisting}
+Schreibt die Quadratzahlen 1 bis $n^2$ in eine Datei (eine pro Zeile).
+
+\subsection{number\_lines}
+\begin{lstlisting}
+int number_lines(const char *src, const char *dst)
+{
+    if (src == NULL || dst == NULL) return -1;
+    FILE *file1 = fopen(src, "r");
+    if (file1 == NULL) return -1;
+    FILE *file2 = fopen(dst, "w");
+    if (file2 == NULL) { fclose(file1); return -1; }
+    int count = 0;
+    int ch, new_line = 1;
+    while ((ch = fgetc(file1)) != EOF) {
+        if (new_line) {
+            count++;
+            fprintf(file2, "%d: ", count);
+            new_line = 0;
+        }
+        fputc(ch, file2);
+        if (ch == '\n') new_line = 1;
+    }
+    fclose(file1);
+    fclose(file2);
+    return count;
+}
+\end{lstlisting}
+Kopiert \texttt{src} nach \texttt{dst} und stellt jeder Zeile ihre Nummer voran. Gibt die Gesamtzahl der Zeilen zur\"uck.
+
+\end{document}

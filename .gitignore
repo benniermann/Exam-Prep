@@ -1,0 +1,33 @@
+## LaTeX - Hilfsdateien (Temporär)
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.synctex.gz
+*.toc
+*.out
+
+## Verzeichnisse und Listen
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+
+## Bibliografie-Hilfsdateien
+*.bbl
+*.blg
+*.bcf
+*.run.xml
+
+## PythonTeX / SageTeX
+*.pytxcode
+*.sagetex.sage
+*.sagetex.py
+*.sagetex.scmd
+
+## Backup-Dateien von Editoren
+*.bak
+*.sav
+*.swp
+*~

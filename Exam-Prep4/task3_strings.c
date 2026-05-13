@@ -114,17 +114,13 @@ int str_count_vowels(const char *s)
 {
     if (s == NULL)
         return 0;
-
     int count = 0;
-
     for (int i = 0; s[i] != '\0'; i++)
     {
-        if (s[i] == 'a' || s[i] == 'e' || s[i] == 'i' || s[i] == 'o' || s[i] == 'u' || s[i] == 'A' || s[i] == 'E' || s[i] == 'I' || s[i] == 'O' || s[i] == 'U')
-        {
+        if (s[i] == 'a' || s[i] == 'e' || s[i] == 'i' || s[i] == 'o' || s[i] == 'u' ||
+            s[i] == 'A' || s[i] == 'E' || s[i] == 'I' || s[i] == 'O' || s[i] == 'U')
             count++;
-        }
     }
-
     return count;
 }
 
