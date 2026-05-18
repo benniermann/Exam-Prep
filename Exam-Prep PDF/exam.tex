@@ -1688,6 +1688,25 @@ int slist_remove_at(SList *list, int index)
 \end{lstlisting}
 L\"oscht Knoten an Position \texttt{index}. Index 0 ist Sonderfall (kein Vorg\"anger); Tail wird aktualisiert wenn letztes Element gel\"oscht wird.
 
+\subsection{slist\_qsort}
+\begin{lstlisting}
+#include <stdlib.h>
+
+int compare_slist(const void *a, const void *b)
+{
+    const SList *listA = (const SList *)a;
+    const SList *listB = (const SList *)b;
+
+    if (listA->size < listB->size) return -1;
+    if (listA->size > listB->size) return 1;
+    return 0;
+}
+\end{lstlisting}
+\begin{lstlisting}
+qsort(dein_array, anzahl_elemente, sizeof(SList), compare_slist);
+\end{lstlisting}
+
+
 \subsection{slist\_insertion\_sort}
 \begin{lstlisting}
 void slist_insertion_sort(SList *list)
@@ -1754,6 +1773,48 @@ int *slist_to_array(const SList *list)
 }
 \end{lstlisting}
 Kopiert alle Listenelemente in ein neu allokiertes Array. Der Aufrufer muss das Array mit \texttt{free()} freigeben.
+
+\subsection{array\_to\_slist}
+\begin{lstlisting}
+SList *array_to_slist(const int *array, int size)
+{
+    if (array == NULL || size <= 0) {
+        SList *empty_list = malloc(sizeof(SList));
+        if (empty_list != NULL) {
+            empty_list->head = NULL;
+            empty_list->size = 0;
+        }
+        return empty_list;
+    }
+
+    SList *list = malloc(sizeof(SList));
+    if (list == NULL) return NULL;
+
+    list->size = size;
+    list->head = NULL;
+
+    SNode *current = NULL;
+
+    for (int i = 0; i < size; i++) {
+        SNode *new_node = malloc(sizeof(SNode));
+        if (new_node == NULL) {
+            return NULL; 
+        }
+        
+        new_node->value = array[i];
+        new_node->next = NULL;
+
+        if (list->head == NULL) {
+            list->head = new_node;
+        } else {
+            current->next = new_node;
+        }
+        current = new_node;
+    }
+
+    return list;
+}
+\end{lstlisting}
 
 \subsection{list\_append (einfache Variante)}
 \begin{lstlisting}
